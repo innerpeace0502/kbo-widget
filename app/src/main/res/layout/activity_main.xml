@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#1A1A2E">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚾ KBO 위젯 설정"
+        android:textColor="#FFD700"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:paddingBottom="32dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="응원 팀 선택"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:paddingBottom="8dp"/>
+
+    <Spinner
+        android:id="@+id/spinner_team"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#2A2A4E"
+        android:paddingBottom="24dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="IPTV 종류 선택"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:paddingBottom="8dp"/>
+
+    <Spinner
+        android:id="@+id/spinner_iptv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#2A2A4E"
+        android:paddingBottom="32dp"/>
+
+    <Button
+        android:id="@+id/btn_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="저장하고 위젯 업데이트"
+        android:backgroundTint="#FFD700"
+        android:textColor="#1A1A2E"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#88FF88"
+        android:textSize="14sp"
+        android:paddingTop="16dp"/>
+
+</LinearLayout>
