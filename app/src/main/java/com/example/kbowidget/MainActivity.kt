@@ -25,6 +25,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var spinnerTeam: Spinner
     private lateinit var spinnerIptv: Spinner
+    private lateinit var seekbarAlpha: android.widget.SeekBar
+    private lateinit var tvAlphaValue: TextView
     private lateinit var btnSave: Button
     private lateinit var tvStatus: TextView
     private lateinit var layoutGameInfo: LinearLayout
@@ -103,6 +105,8 @@ class MainActivity : AppCompatActivity() {
 
         spinnerTeam            = findViewById(R.id.spinner_team)
         spinnerIptv            = findViewById(R.id.spinner_iptv)
+        seekbarAlpha           = findViewById(R.id.seekbar_alpha)
+        tvAlphaValue           = findViewById(R.id.tv_alpha_value)
         btnSave                = findViewById(R.id.btn_save)
         tvStatus               = findViewById(R.id.tv_status)
         layoutGameInfo         = findViewById(R.id.layout_game_info)
@@ -146,12 +150,32 @@ class MainActivity : AppCompatActivity() {
             "genie" -> 1; "Uplus" -> 2; "btv" -> 3; else -> 0
         })
 
+        // ✅ 투명도 슬라이더 초기화
+        val savedAlpha = prefs.getInt("bg_alpha", 94)
+        seekbarAlpha.progress = savedAlpha
+        tvAlphaValue.text = "$savedAlpha%"
+        seekbarAlpha.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                tvAlphaValue.text = "$progress%"
+            }
+            override fun onStartTrackingTouch(sb: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(sb: android.widget.SeekBar?) {
+                val prog = sb?.progress ?: return
+                prefs.edit().putInt("bg_alpha", prog).apply()
+            }
+        })
+
         btnSave.setOnClickListener {
-            val selectedTeam = spinnerTeam.selectedItem.toString()
-            val selectedIptv = when (spinnerIptv.selectedItemPosition) {
+            val selectedTeam  = spinnerTeam.selectedItem.toString()
+            val selectedIptv  = when (spinnerIptv.selectedItemPosition) {
                 1 -> "genie"; 2 -> "Uplus"; 3 -> "btv"; else -> ""
             }
-            prefs.edit().putString("team", selectedTeam).putString("iptv", selectedIptv).apply()
+            val selectedAlpha = seekbarAlpha.progress
+            prefs.edit()
+                .putString("team", selectedTeam)
+                .putString("iptv", selectedIptv)
+                .putInt("bg_alpha", selectedAlpha)
+                .apply()
 
             val manager = AppWidgetManager.getInstance(this)
             val ids = manager.getAppWidgetIds(ComponentName(this, KboWidgetProvider::class.java))
@@ -407,16 +431,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadScores(away: String, home: String, myTeam: String) {
+        val prefs     = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+        val todayStr  = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+            .format(java.util.Calendar.getInstance().time)
+
         client.newCall(
             Request.Builder().url("$BASE/api/scores").build()
         ).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // 실패 시 캐시된 종료 스코어 유지
-                if (cachedStatus == "2" && cachedAwayScore.isNotEmpty()) {
-                    runOnUiThread {
-                        updateScoreCard(cachedAwayScore, cachedHomeScore, "경기종료", "2")
-                    }
-                }
+                restorePersistedScore(away, home, myTeam, prefs, todayStr)
             }
             override fun onResponse(call: Call, response: Response) {
                 val body   = response.body?.string() ?: return
@@ -438,6 +461,17 @@ class MainActivity : AppCompatActivity() {
                         cachedHomeScore = homeScore
                         cachedInning    = inning
                         cachedStatus    = status
+                        // ✅ 스코어를 SharedPreferences에 저장 (앱 재시작 복원용)
+                        if ((status == "1" || status == "2") && awayScore.isNotEmpty()) {
+                            prefs.edit()
+                                .putString("app_status",     status)
+                                .putString("app_away_score", awayScore)
+                                .putString("app_home_score", homeScore)
+                                .putString("app_date",       todayStr)
+                                .putString("app_away",       away)
+                                .putString("app_home",       home)
+                                .apply()
+                        }
                         runOnUiThread {
                             updateScoreCard(awayScore, homeScore, inning, status)
                             if (status == "2") {
@@ -450,18 +484,44 @@ class MainActivity : AppCompatActivity() {
                         break
                     }
                 }
-                // 서버 응답에 해당 경기 없음 → 캐시된 최종 스코어로 폴백
-                if (!found && cachedStatus == "2" && cachedAwayScore.isNotEmpty()) {
-                    runOnUiThread {
-                        updateScoreCard(cachedAwayScore, cachedHomeScore, "경기종료", "2")
-                        layoutFullRanking.visibility = View.VISIBLE
-                        if (cachedRankingList.isNotEmpty()) {
-                            renderRanking(cachedRankingList, away, home, myTeam)
-                        }
-                    }
+                if (!found) {
+                    restorePersistedScore(away, home, myTeam, prefs, todayStr)
                 }
             }
         })
+    }
+
+    private fun restorePersistedScore(
+        away: String, home: String, myTeam: String,
+        prefs: android.content.SharedPreferences, todayStr: String
+    ) {
+        // SharedPreferences → 인메모리 캐시 순으로 폴백
+        val pStatus = prefs.getString("app_status", "") ?: ""
+        val pAway   = prefs.getString("app_away", "") ?: ""
+        val pHome   = prefs.getString("app_home", "") ?: ""
+        val pDate   = prefs.getString("app_date", "") ?: ""
+        val pAScore = prefs.getString("app_away_score", "") ?: ""
+        val pHScore = prefs.getString("app_home_score", "") ?: ""
+
+        val matchesPersist = (pStatus == "1" || pStatus == "2") && pAScore.isNotEmpty() && pDate == todayStr &&
+            ((pAway == away && pHome == home) || (pAway == home && pHome == away))
+        val matchesCache   = cachedStatus == "2" && cachedAwayScore.isNotEmpty()
+
+        if (matchesPersist || matchesCache) {
+            val aScore = if (matchesPersist) pAScore else cachedAwayScore
+            val hScore = if (matchesPersist) pHScore else cachedHomeScore
+            if (matchesPersist) {
+                cachedAwayScore = aScore; cachedHomeScore = hScore
+                cachedInning = "경기종료"; cachedStatus = "2"
+            }
+            runOnUiThread {
+                updateScoreCard(aScore, hScore, "경기종료", "2")
+                layoutFullRanking.visibility = View.VISIBLE
+                if (cachedRankingList.isNotEmpty()) {
+                    renderRanking(cachedRankingList, away, home, myTeam)
+                }
+            }
+        }
     }
 
     private fun updateScoreCard(

@@ -280,17 +280,19 @@ class KboWidgetProvider : AppWidgetProvider() {
                             val homeScore = score.getString("home_score")
                             val inning    = score.getString("inning")
 
-                            val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                                .format(java.util.Calendar.getInstance().time)
-                            prefs.edit()
-                                .putString("reg_status",     status)
-                                .putString("reg_away_score", awayScore)
-                                .putString("reg_home_score", homeScore)
-                                .putString("reg_inning",     inning)
-                                .putString("reg_date",       todayStr)
-                                .putString("reg_away",       away)
-                                .putString("reg_home",       home)
-                                .apply()
+                            if (awayScore.isNotEmpty()) {
+                                val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+                                    .format(java.util.Calendar.getInstance().time)
+                                prefs.edit()
+                                    .putString("reg_status",     status)
+                                    .putString("reg_away_score", awayScore)
+                                    .putString("reg_home_score", homeScore)
+                                    .putString("reg_inning",     inning)
+                                    .putString("reg_date",       todayStr)
+                                    .putString("reg_away",       away)
+                                    .putString("reg_home",       home)
+                                    .apply()
+                            }
 
                             val v = RemoteViews(context.packageName, R.layout.widget_layout)
 
