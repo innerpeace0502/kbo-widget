@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_slim_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="#F01A1A2E"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="0dp"
+    android:paddingBottom="0dp"
+    android:gravity="center_vertical">
+
+    <!-- ── 원정팀: 로고(고정) + 스코어(로고↔중앙정보 사이 중앙) ── -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/iv_slim_logo_away"
+            android:layout_width="70dp"
+            android:layout_height="70dp"/>
+
+        <TextView
+            android:id="@+id/tv_slim_score_away"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFD700"
+            android:textSize="44sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:visibility="gone"/>
+
+        <!-- 경기 전: 선발투수 (스코어 자리) -->
+        <LinearLayout
+            android:id="@+id/ll_slim_pitcher_away"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_slim_pitcher_away_role"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="선발"
+                android:textColor="#88AAAAAA"
+                android:textSize="11sp"
+                android:singleLine="true"/>
+
+            <TextView
+                android:id="@+id/tv_slim_pitcher_away"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ── 가운데 정보 ── -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp">
+
+        <!-- 경기 전: 시작 시간 + 구장 (1줄) -->
+        <TextView
+            android:id="@+id/tv_slim_main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="18:30 · 광주"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:singleLine="true"
+            android:visibility="visible"/>
+
+        <!-- 경기 중: LIVE 뱃지 + 이닝 (1줄) -->
+        <LinearLayout
+            android:id="@+id/ll_slim_live_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_slim_live_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LIVE"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:background="#FFFF3B30"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:layout_marginEnd="5dp"/>
+
+            <TextView
+                android:id="@+id/tv_slim_inning"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="7회 초▲"
+                android:textColor="#FF7A6E"
+                android:textSize="15sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- 경기 종료: 종료 뱃지 + 구장 (1줄) -->
+        <LinearLayout
+            android:id="@+id/ll_slim_ended_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_slim_ended_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="종료"
+                android:textColor="#AAAAAA"
+                android:textSize="9sp"
+                android:background="#FF222222"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:layout_marginEnd="5dp"/>
+
+            <TextView
+                android:id="@+id/tv_slim_ended_main"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#777777"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end"/>
+        </LinearLayout>
+
+        <!-- 채널 행: 채널명 + 채널번호 뱃지 -->
+        <LinearLayout
+            android:id="@+id/ll_slim_channel_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="3dp"
+            android:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_slim_channel_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFD700"
+                android:textSize="11sp"
+                android:singleLine="true"/>
+
+            <TextView
+                android:id="@+id/tv_slim_channel_num"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#1A1A2E"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="#FFD700"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:layout_marginStart="4dp"
+                android:visibility="gone"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ── 홈팀: 스코어(로고↔중앙정보 사이 중앙) + 로고(고정) ── -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 경기 전: 선발투수 (스코어 자리) -->
+        <LinearLayout
+            android:id="@+id/ll_slim_pitcher_home"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_slim_pitcher_home_role"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="선발"
+                android:textColor="#88AAAAAA"
+                android:textSize="11sp"
+                android:singleLine="true"/>
+
+            <TextView
+                android:id="@+id/tv_slim_pitcher_home"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_slim_score_home"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFD700"
+            android:textSize="44sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:visibility="gone"/>
+
+        <ImageView
+            android:id="@+id/iv_slim_logo_home"
+            android:layout_width="70dp"
+            android:layout_height="70dp"/>
+    </LinearLayout>
+
+</LinearLayout>

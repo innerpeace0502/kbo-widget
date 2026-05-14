@@ -1,66 +1,598 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#1A1A2E">
+    android:background="#0F0F1A">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⚾ KBO 위젯 설정"
-        android:textColor="#FFD700"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:paddingBottom="32dp"/>
+        android:orientation="vertical"
+        android:paddingTop="40dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="20dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="응원 팀 선택"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:paddingBottom="8dp"/>
+        <!-- 설정 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_settings"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
 
-    <Spinner
-        android:id="@+id/spinner_team"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#2A2A4E"
-        android:paddingBottom="24dp"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="KBO 위젯 설정"
+                android:textColor="#FFD700"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp"/>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="IPTV 종류 선택"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:paddingBottom="8dp"/>
+            <!-- 팀/IPTV 가로 배치 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
 
-    <Spinner
-        android:id="@+id/spinner_iptv"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#2A2A4E"
-        android:paddingBottom="32dp"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="6dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="응원 팀"
+                        android:textColor="#888888"
+                        android:textSize="10sp"
+                        android:paddingBottom="3dp"/>
+                    <Spinner
+                        android:id="@+id/spinner_team"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_spinner"
+                        android:paddingStart="8dp"/>
+                </LinearLayout>
 
-    <Button
-        android:id="@+id/btn_save"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="저장하고 위젯 업데이트"
-        android:backgroundTint="#FFD700"
-        android:textColor="#1A1A2E"
-        android:textStyle="bold"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="6dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="IPTV"
+                        android:textColor="#888888"
+                        android:textSize="10sp"
+                        android:paddingBottom="3dp"/>
+                    <Spinner
+                        android:id="@+id/spinner_iptv"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_spinner"
+                        android:paddingStart="8dp"/>
+                </LinearLayout>
+            </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#88FF88"
-        android:textSize="14sp"
-        android:paddingTop="16dp"/>
+            <!-- ✅ 위젯 배경 투명도 슬라이더 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="위젯 배경 투명도"
+                android:textColor="#888888"
+                android:textSize="10sp"
+                android:paddingBottom="4dp"/>
 
-</LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <SeekBar
+                    android:id="@+id/seekbar_alpha"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="94"
+                    android:progressTint="#FFD700"
+                    android:thumbTint="#FFD700"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/tv_alpha_value"
+                    android:layout_width="36dp"
+                    android:layout_height="wrap_content"
+                    android:text="94%"
+                    android:textColor="#FFD700"
+                    android:textSize="11sp"
+                    android:gravity="end"/>
+            </LinearLayout>
+
+            <!-- 저장 버튼 -->
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:text="저장하고 위젯 업데이트"
+                android:backgroundTint="#FFD700"
+                android:textColor="#0F0F1A"
+                android:textStyle="bold"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <!-- 상태 메시지 -->
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#4CD964"
+            android:textSize="11sp"
+            android:paddingBottom="6dp"/>
+
+        <!-- 구분선 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1E1E2E"
+            android:layout_marginBottom="10dp"/>
+
+        <!-- 경기 정보 섹션 -->
+        <LinearLayout
+            android:id="@+id/layout_game_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 날짜 + 상태 배지 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_game_date"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text=""
+                    android:textColor="#666666"
+                    android:textSize="11sp"/>
+
+                <TextView
+                    android:id="@+id/tv_status_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="10sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- 메인 경기 카드 -->
+            <LinearLayout
+                android:id="@+id/layout_main_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_main"
+                android:padding="14dp"
+                android:layout_marginBottom="10dp">
+
+                <!-- 팀 로고 + 점수 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="80dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <!-- 원정팀 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:id="@+id/iv_score_away_logo"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_marginEnd="10dp"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:id="@+id/tv_score_away_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textColor="#CCCCCC"
+                                android:textSize="13sp"
+                                android:textStyle="bold"/>
+
+                            <TextView
+                                android:id="@+id/tv_score_away_score"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textColor="#FFD700"
+                                android:textSize="36sp"
+                                android:textStyle="bold"
+                                android:includeFontPadding="false"
+                                android:visibility="gone"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 가운데 정보 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:minWidth="88dp"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/tv_score_inning"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:visibility="gone"/>
+
+                        <TextView
+                            android:id="@+id/tv_game_time_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#FFD700"
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:paddingTop="3dp"/>
+
+                        <TextView
+                            android:id="@+id/tv_stadium_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#666666"
+                            android:textSize="10sp"
+                            android:gravity="center"/>
+
+                        <TextView
+                            android:id="@+id/tv_channel_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#666666"
+                            android:textSize="10sp"
+                            android:gravity="center"/>
+                    </LinearLayout>
+
+                    <!-- 홈팀 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical|end">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:id="@+id/tv_score_home_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textColor="#CCCCCC"
+                                android:textSize="13sp"
+                                android:textStyle="bold"/>
+
+                            <TextView
+                                android:id="@+id/tv_score_home_score"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textColor="#FFD700"
+                                android:textSize="36sp"
+                                android:textStyle="bold"
+                                android:includeFontPadding="false"
+                                android:visibility="gone"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/iv_score_home_logo"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_marginStart="10dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 구분선 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1A3550"
+                    android:layout_marginBottom="10dp"/>
+
+                <!-- 투수/타자 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:id="@+id/layout_away_pitcher"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="start|center_vertical"/>
+
+                    <LinearLayout
+                        android:id="@+id/layout_home_pitcher"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="end|center_vertical"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 양팀 순위 카드 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_sub"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:layout_marginEnd="4dp">
+                    <TextView
+                        android:id="@+id/tv_away_rank_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#666666"
+                        android:textSize="10sp"
+                        android:gravity="center"/>
+                    <TextView
+                        android:id="@+id/tv_away_rank"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-"
+                        android:textColor="#FFD700"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:gravity="center"/>
+                    <TextView
+                        android:id="@+id/tv_away_record"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#555555"
+                        android:textSize="10sp"
+                        android:gravity="center"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_sub"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:layout_marginStart="4dp">
+                    <TextView
+                        android:id="@+id/tv_home_rank_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#666666"
+                        android:textSize="10sp"
+                        android:gravity="center"/>
+                    <TextView
+                        android:id="@+id/tv_home_rank"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-"
+                        android:textColor="#FFD700"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:gravity="center"/>
+                    <TextView
+                        android:id="@+id/tv_home_record"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#555555"
+                        android:textSize="10sp"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 최근 10경기 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_sub"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:layout_marginEnd="4dp">
+
+                    <TextView
+                        android:id="@+id/tv_away_recent_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="최근 10경기"
+                        android:textColor="#666666"
+                        android:textSize="10sp"
+                        android:gravity="center"
+                        android:paddingBottom="6dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/tv_away_recent_row1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_gravity="center"
+                        android:layout_marginBottom="2dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/tv_away_recent_row2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_gravity="center"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_sub"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:layout_marginStart="4dp">
+
+                    <TextView
+                        android:id="@+id/tv_home_recent_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="최근 10경기"
+                        android:textColor="#666666"
+                        android:textSize="10sp"
+                        android:gravity="center"
+                        android:paddingBottom="6dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/tv_home_recent_row1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_gravity="center"
+                        android:layout_marginBottom="2dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/tv_home_recent_row2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 전체 구단 순위 -->
+            <LinearLayout
+                android:id="@+id/layout_full_ranking"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_sub"
+                android:padding="10dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="전체 구단 순위"
+                    android:textColor="#666666"
+                    android:textSize="10sp"
+                    android:paddingBottom="8dp"/>
+
+                <!-- 헤더 행 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingBottom="5dp">
+
+                    <TextView android:layout_width="30dp" android:layout_height="wrap_content"
+                        android:text="순위" android:textColor="#444455" android:textSize="9sp"/>
+                    <TextView android:layout_width="36dp" android:layout_height="wrap_content"
+                        android:text="팀" android:textColor="#444455" android:textSize="9sp"/>
+                    <TextView android:layout_width="44dp" android:layout_height="wrap_content"
+                        android:text="승률" android:textColor="#444455" android:textSize="9sp" android:gravity="center"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="승" android:textColor="#444455" android:textSize="9sp" android:gravity="end"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="패" android:textColor="#444455" android:textSize="9sp" android:gravity="end"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="무" android:textColor="#444455" android:textSize="9sp" android:gravity="end"/>
+                    <TextView android:layout_width="36dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="연속" android:textColor="#444455" android:textSize="9sp" android:gravity="end"/>
+                </LinearLayout>
+
+                <!-- 헤더 구분선 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1E1E32"
+                    android:layout_marginBottom="2dp"/>
+
+                <LinearLayout
+                    android:id="@+id/layout_ranking_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
