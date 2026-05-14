@@ -645,6 +645,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 val body = response.body?.string() ?: return
                 val json = JSONObject(body)
+                val gameStatus   = json.optString("status", "")
                 val awayPitchers = json.optJSONArray("away_pitchers") ?: JSONArray()
                 val homePitchers = json.optJSONArray("home_pitchers") ?: JSONArray()
                 runOnUiThread {
@@ -652,6 +653,34 @@ class MainActivity : AppCompatActivity() {
                     layoutHomePitcher.removeAllViews()
                     buildPitcherView(layoutAwayPitcher, awayPitchers)
                     buildPitcherView(layoutHomePitcher, homePitchers)
+                }
+                // ✅ 경기 종료 + 점수 정보가 있으면 스코어카드 업데이트 (api/scores 실패 시 폴백)
+                if (gameStatus == "ended" && cachedStatus != "2") {
+                    val awayScore = json.optString("away_score", "")
+                    val homeScore = json.optString("home_score", "")
+                    if (awayScore.isNotEmpty() && homeScore.isNotEmpty()) {
+                        val away     = json.optString("away", cachedAway)
+                        val home     = json.optString("home", cachedHome)
+                        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+                            .format(java.util.Calendar.getInstance().time)
+                        val prefs    = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+                        prefs.edit()
+                            .putString("app_status",     "2")
+                            .putString("app_away_score", awayScore)
+                            .putString("app_home_score", homeScore)
+                            .putString("app_date",       todayStr)
+                            .putString("app_away",       away)
+                            .putString("app_home",       home)
+                            .apply()
+                        cachedAwayScore = awayScore
+                        cachedHomeScore = homeScore
+                        cachedInning    = "경기종료"
+                        cachedStatus    = "2"
+                        runOnUiThread {
+                            updateScoreCard(awayScore, homeScore, "경기종료", "2")
+                            layoutFullRanking.visibility = View.VISIBLE
+                        }
+                    }
                 }
             }
         })
