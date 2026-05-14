@@ -213,6 +213,7 @@ class MainActivity : AppCompatActivity() {
             fetchGameInfo(selectedTeam, selectedIptv)
         }
 
+        restoreScheduleFromPrefs()   // 프로세스 재시작 시 캐시 복원
         loadGameInfo(savedTeam, savedIptv)
     }
 
@@ -225,6 +226,9 @@ class MainActivity : AppCompatActivity() {
         // 캐시된 날짜와 오늘 날짜 비교
         val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.KOREA)
             .format(java.util.Calendar.getInstance().time)
+
+        // 위젯 터치 등 프로세스 재시작 후 캐시가 비어있으면 SharedPreferences에서 복원
+        if (cachedAway.isEmpty()) restoreScheduleFromPrefs()
 
         if (cachedAway.isNotEmpty()) restoreCachedUI()
 
@@ -337,30 +341,6 @@ class MainActivity : AppCompatActivity() {
                 val isTomorrow  = json.optBoolean("내일경기", false)
                 val isCancelled = json.optBoolean("cancelled", false)
 
-// 기존 isTomorrow 처리
-                if (isTomorrow) {
-                    tvScoreInning.text = "VS"
-                    tvScoreInning.setTextColor(Color.parseColor("#555555"))
-                    tvScoreInning.setBackgroundColor(Color.TRANSPARENT)
-                    tvScoreInning.textSize = 16f
-                    tvScoreInning.visibility = View.VISIBLE
-                }
-
-// ✅ 우천취소 처리 추가
-                if (isCancelled) {
-                    tvScoreInning.text = "우천취소"
-                    tvScoreInning.setTextColor(Color.parseColor("#B388FF"))
-                    applyBadgeBackground(tvScoreInning, "#1A0A2A", "#4A2060")
-                    tvScoreInning.textSize = 11f
-                    tvScoreInning.visibility = View.VISIBLE
-                    tvGameTimeInfo.visibility = View.GONE
-                    // 상단 상태 배지
-                    tvStatusBadge.text = "우천취소"
-                    tvStatusBadge.setTextColor(Color.parseColor("#B388FF"))
-                    applyBadgeBackground(tvStatusBadge, "#1A0A2A", "#4A2060")
-                    tvStatusBadge.visibility = View.VISIBLE
-                }
-
                 runOnUiThread {
                     if (games.length() == 0) {
                         layoutGameInfo.visibility = View.GONE
@@ -383,6 +363,21 @@ class MainActivity : AppCompatActivity() {
                     cachedStadium   = stadium
                     cachedBroadcast = broadcast
                     lastLoadTime    = System.currentTimeMillis()
+
+                    // ✅ 경기 메타데이터 저장 → 위젯 터치·프로세스 재시작 후 즉시 복원
+                    val todayKey = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+                        .format(java.util.Calendar.getInstance().time)
+                    getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("app_sched_date_key",     todayKey)
+                        .putString("app_sched_away",         away)
+                        .putString("app_sched_home",         home)
+                        .putString("app_sched_team",         team)
+                        .putString("app_sched_date_display", cachedDate)
+                        .putString("app_sched_time",         time)
+                        .putString("app_sched_stadium",      stadium)
+                        .putString("app_sched_broadcast",    broadcast)
+                        .putLong(  "app_sched_last_load",    lastLoadTime)
+                        .apply()
 
                     layoutGameInfo.visibility = View.VISIBLE
                     tvGameDate.text      = cachedDate
@@ -467,6 +462,7 @@ class MainActivity : AppCompatActivity() {
                                 .putString("app_status",     status)
                                 .putString("app_away_score", awayScore)
                                 .putString("app_home_score", homeScore)
+                                .putString("app_inning",     inning)
                                 .putString("app_date",       todayStr)
                                 .putString("app_away",       away)
                                 .putString("app_home",       home)
@@ -654,8 +650,8 @@ class MainActivity : AppCompatActivity() {
                     buildPitcherView(layoutAwayPitcher, awayPitchers)
                     buildPitcherView(layoutHomePitcher, homePitchers)
                 }
-                // ✅ 경기 종료 + 점수 정보가 있으면 스코어카드 업데이트 (api/scores 실패 시 폴백)
-                if (gameStatus == "ended" && cachedStatus != "2") {
+                // ✅ 경기 종료 + 점수 있으면 스코어카드 업데이트 (api/scores 빈 배열 시 폴백)
+                if (gameStatus == "ended") {
                     val awayScore = json.optString("away_score", "")
                     val homeScore = json.optString("home_score", "")
                     if (awayScore.isNotEmpty() && homeScore.isNotEmpty()) {
@@ -961,6 +957,42 @@ class MainActivity : AppCompatActivity() {
                 ).also { it.marginEnd = 2 }
             }
             if (idx < 5) row1.addView(badge) else row2.addView(badge)
+        }
+    }
+
+    /**
+     * 프로세스 재시작(위젯 터치, 시스템 종료 후 복귀) 시 companion object 캐시를 SharedPreferences에서 복원.
+     * API 호출 없이 즉시 이전 화면을 재구성할 수 있도록 함.
+     */
+    private fun restoreScheduleFromPrefs() {
+        val prefs    = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+            .format(java.util.Calendar.getInstance().time)
+
+        val pDateKey = prefs.getString("app_sched_date_key", "") ?: ""
+        val pAway    = prefs.getString("app_sched_away", "") ?: ""
+        if (pDateKey != todayStr || pAway.isEmpty()) return   // 날짜 불일치 or 데이터 없음
+
+        cachedAway      = pAway
+        cachedHome      = prefs.getString("app_sched_home", "") ?: ""
+        cachedTeam      = prefs.getString("app_sched_team", "") ?: ""
+        cachedDate      = prefs.getString("app_sched_date_display", "") ?: ""
+        cachedTime      = prefs.getString("app_sched_time", "") ?: ""
+        cachedStadium   = prefs.getString("app_sched_stadium", "") ?: ""
+        cachedBroadcast = prefs.getString("app_sched_broadcast", "") ?: ""
+        lastLoadTime    = prefs.getLong("app_sched_last_load", 0L)
+
+        // 스코어 복원 (status 1·2 모두, inning 포함)
+        val pStatus = prefs.getString("app_status", "") ?: ""
+        val pAScore = prefs.getString("app_away_score", "") ?: ""
+        val pHScore = prefs.getString("app_home_score", "") ?: ""
+        val pInning = prefs.getString("app_inning", "") ?: ""
+        val pSDate  = prefs.getString("app_date", "") ?: ""
+        if ((pStatus == "1" || pStatus == "2") && pAScore.isNotEmpty() && pSDate == todayStr) {
+            cachedStatus    = pStatus
+            cachedAwayScore = pAScore
+            cachedHomeScore = pHScore
+            cachedInning    = if (pStatus == "2") "경기종료" else pInning
         }
     }
 
