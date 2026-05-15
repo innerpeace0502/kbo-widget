@@ -21,7 +21,8 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        context.startService(Intent(context, TickService::class.java))
+        // TickService는 메인 앱 실행 중에만 동작. 위젯 갱신은 알람 체인으로
+        try { context.startService(Intent(context, TickService::class.java)) } catch (_: Exception) {}
         KboWidgetProvider.scheduleFetchAlarm(context)
         scheduleSlimFetchAlarm(context)
         for (id in appWidgetIds) {
@@ -38,7 +39,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
         when (intent.action) {
             KboWidgetProvider.ACTION_FETCH,
             Intent.ACTION_BOOT_COMPLETED -> {
-                context.startService(Intent(context, TickService::class.java))
+                // ❌ 백그라운드 startService 제거 (Android 8+ ForegroundServiceStartNotAllowedException 회피)
                 scheduleSlimFetchAlarm(context)
                 ids.forEach { fetchGameData(context, awm, it) }
             }
@@ -103,6 +104,9 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int
     ) {
+        // ✅ 04:00 기준 게임 날짜 변경 시 모든 캐시 일괄 클리어
+        KboCommon.clearCacheIfDateChanged(context)
+
         val prefs = context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
         val team  = prefs.getString("team", "전체") ?: "전체"
         val iptv  = prefs.getString("iptv", "") ?: ""
@@ -175,12 +179,31 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                             .format(java.util.Calendar.getInstance().time)
                     }
 
-                    if ((savedStatus == "2" || savedStatus == "1") &&
-                        savedAwayScore.isNotEmpty() && savedDate == today) {
+                    // reg_* 또는 app_*에 오늘 종료 스코어가 있으면 slim_* 스테일 값보다 우선 사용
+                    // (팀명 매칭 없이 날짜만 확인 — 하루에 한 팀 한 경기이므로 충분)
+                    fun findEndedScore(): Pair<String, String>? {
+                        for (pfx in listOf("reg", "app")) {
+                            val st  = prefs.getString("${pfx}_status", "") ?: ""
+                            val as_ = prefs.getString("${pfx}_away_score", "") ?: ""
+                            val hs_ = prefs.getString("${pfx}_home_score", "") ?: ""
+                            val dt  = prefs.getString("${pfx}_date", "") ?: ""
+                            if (st == "2" && as_.isNotEmpty() && dt == today) return as_ to hs_
+                        }
+                        return null
+                    }
+                    val endedScore = findEndedScore()
+
+                    // slim_status가 "1"(진행중 stale)인데 app_*에 종료 스코어가 있으면 종료 상태로 표시
+                    val effectiveStatus    = if (endedScore != null && savedStatus != "2") "2" else savedStatus
+                    val effectiveAwayScore = endedScore?.first ?: savedAwayScore
+                    val effectiveHomeScore = endedScore?.second ?: savedHomeScore
+
+                    if ((effectiveStatus == "2" || effectiveStatus == "1") &&
+                        effectiveAwayScore.isNotEmpty() && (savedDate == today || endedScore != null)) {
                         // 오늘 날짜의 경기 중/종료 상태가 있으면 즉시 표시
-                        val awayInt = savedAwayScore.toIntOrNull() ?: 0
-                        val homeInt = savedHomeScore.toIntOrNull() ?: 0
-                        if (savedStatus == "2") {
+                        val awayInt = effectiveAwayScore.toIntOrNull() ?: 0
+                        val homeInt = effectiveHomeScore.toIntOrNull() ?: 0
+                        if (effectiveStatus == "2") {
                             v.setViewVisibility(R.id.tv_slim_main,         android.view.View.GONE)
                             v.setViewVisibility(R.id.ll_slim_live_row,     android.view.View.GONE)
                             v.setViewVisibility(R.id.ll_slim_ended_row,    android.view.View.VISIBLE)
@@ -190,13 +213,13 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                             v.setViewVisibility(R.id.ll_slim_pitcher_away, android.view.View.GONE)
                             v.setViewVisibility(R.id.ll_slim_pitcher_home, android.view.View.GONE)
                             v.setTextViewText(R.id.tv_slim_ended_main,  savedStadium)
-                            v.setTextViewText(R.id.tv_slim_score_away,  savedAwayScore)
-                            v.setTextViewText(R.id.tv_slim_score_home,  savedHomeScore)
+                            v.setTextViewText(R.id.tv_slim_score_away,  effectiveAwayScore)
+                            v.setTextViewText(R.id.tv_slim_score_home,  effectiveHomeScore)
                             v.setTextColor(R.id.tv_slim_score_away,
                                 if (awayInt > homeInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
                             v.setTextColor(R.id.tv_slim_score_home,
                                 if (homeInt > awayInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
-                        } else { // status == "1"
+                        } else { // effectiveStatus == "1"
                             v.setViewVisibility(R.id.tv_slim_main,         android.view.View.GONE)
                             v.setViewVisibility(R.id.ll_slim_live_row,     android.view.View.VISIBLE)
                             v.setViewVisibility(R.id.ll_slim_ended_row,    android.view.View.GONE)
@@ -205,8 +228,8 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                             v.setViewVisibility(R.id.tv_slim_score_home,   android.view.View.VISIBLE)
                             v.setViewVisibility(R.id.ll_slim_pitcher_away, android.view.View.GONE)
                             v.setViewVisibility(R.id.ll_slim_pitcher_home, android.view.View.GONE)
-                            v.setTextViewText(R.id.tv_slim_score_away, savedAwayScore)
-                            v.setTextViewText(R.id.tv_slim_score_home, savedHomeScore)
+                            v.setTextViewText(R.id.tv_slim_score_away, effectiveAwayScore)
+                            v.setTextViewText(R.id.tv_slim_score_home, effectiveHomeScore)
                             v.setTextColor(R.id.tv_slim_score_away,
                                 if (awayInt >= homeInt) 0xFFFFD700.toInt() else 0xFF777777.toInt())
                             v.setTextColor(R.id.tv_slim_score_home,
@@ -250,7 +273,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                     appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
 
                     if (cachedAway == null) {
-                        KboWidgetProvider.loadLogoBitmap(awayLogo, away) { bmp ->
+                        KboWidgetProvider.loadLogoBitmapCached(context, awayLogo, away) { bmp ->
                             bmp?.let {
                                 val v2 = RemoteViews(context.packageName, R.layout.widget_layout_slim)
                                 v2.setImageViewBitmap(R.id.iv_slim_logo_away, it)
@@ -259,7 +282,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                         }
                     }
                     if (cachedHome == null) {
-                        KboWidgetProvider.loadLogoBitmap(homeLogo, home) { bmp ->
+                        KboWidgetProvider.loadLogoBitmapCached(context, homeLogo, home) { bmp ->
                             bmp?.let {
                                 val v2 = RemoteViews(context.packageName, R.layout.widget_layout_slim)
                                 v2.setImageViewBitmap(R.id.iv_slim_logo_home, it)
@@ -427,35 +450,54 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                         break
                     }
 
-                    // ✅ 경기를 찾지 못한 경우 → SharedPreferences에 저장된 상태 복원
-                    // status="1"(진행중)도 포함: 서버에 데이터 없을 때 stale LIVE 배지 방지
+                    // ✅ 경기를 찾지 못한 경우 → reg_*/app_* 확정 종료 스코어로 복원
+                    // reg_*/app_*를 못 찾으면 아무것도 덮어쓰지 않음 (fetchGameData 사전 표시 유지)
                     if (!found) {
-                        val savedStatus    = prefs.getString("slim_status", "") ?: ""
-                        val savedAwayScore = prefs.getString("slim_away_score", "") ?: ""
-                        val savedHomeScore = prefs.getString("slim_home_score", "") ?: ""
-                        val savedStadium   = prefs.getString("slim_stadium", "") ?: ""
-                        if ((savedStatus == "2" || savedStatus == "1") && savedAwayScore.isNotEmpty()) {
-                            val awayInt = savedAwayScore.toIntOrNull() ?: 0
-                            val homeInt = savedHomeScore.toIntOrNull() ?: 0
-                            val v = RemoteViews(context.packageName, R.layout.widget_layout_slim)
-                            applyBackground(context, v)
-                            v.setViewVisibility(R.id.tv_slim_main,           android.view.View.GONE)
-                            v.setViewVisibility(R.id.ll_slim_live_row,       android.view.View.GONE)
-                            v.setViewVisibility(R.id.ll_slim_ended_row,      android.view.View.VISIBLE)
-                            v.setViewVisibility(R.id.ll_slim_channel_row,    android.view.View.GONE)
-                            v.setViewVisibility(R.id.tv_slim_score_away,     android.view.View.VISIBLE)
-                            v.setViewVisibility(R.id.tv_slim_score_home,     android.view.View.VISIBLE)
-                            v.setViewVisibility(R.id.ll_slim_pitcher_away,   android.view.View.GONE)
-                            v.setViewVisibility(R.id.ll_slim_pitcher_home,   android.view.View.GONE)
-                            v.setTextViewText(R.id.tv_slim_ended_main,  savedStadium)
-                            v.setTextViewText(R.id.tv_slim_score_away,  savedAwayScore)
-                            v.setTextViewText(R.id.tv_slim_score_home,  savedHomeScore)
-                            v.setTextColor(R.id.tv_slim_score_away,
-                                if (awayInt > homeInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
-                            v.setTextColor(R.id.tv_slim_score_home,
-                                if (homeInt > awayInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
-                            appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
+                        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+                            .format(java.util.Calendar.getInstance().time)
+
+                        var fallbackAway = ""; var fallbackHome = ""
+                        for (pfx in listOf("reg", "app")) {
+                            val st  = prefs.getString("${pfx}_status", "") ?: ""
+                            val as_ = prefs.getString("${pfx}_away_score", "") ?: ""
+                            val hs_ = prefs.getString("${pfx}_home_score", "") ?: ""
+                            val dt  = prefs.getString("${pfx}_date", "") ?: ""
+                            if (st == "2" && as_.isNotEmpty() && dt == todayStr) {
+                                fallbackAway = as_; fallbackHome = hs_; break
+                            }
                         }
+
+                        // 확정 종료 스코어가 없으면 덮어쓰지 않음 (pre-check 표시 유지)
+                        if (fallbackAway.isEmpty()) return
+
+                        val slimStadium = prefs.getString("slim_stadium", "") ?: ""
+                        prefs.edit()
+                            .putString("slim_status",     "2")
+                            .putString("slim_away_score", fallbackAway)
+                            .putString("slim_home_score", fallbackHome)
+                            .putString("slim_date",       todayStr)
+                            .apply()
+
+                        val awayInt = fallbackAway.toIntOrNull() ?: 0
+                        val homeInt = fallbackHome.toIntOrNull() ?: 0
+                        val v = RemoteViews(context.packageName, R.layout.widget_layout_slim)
+                        applyBackground(context, v)
+                        v.setViewVisibility(R.id.tv_slim_main,           android.view.View.GONE)
+                        v.setViewVisibility(R.id.ll_slim_live_row,       android.view.View.GONE)
+                        v.setViewVisibility(R.id.ll_slim_ended_row,      android.view.View.VISIBLE)
+                        v.setViewVisibility(R.id.ll_slim_channel_row,    android.view.View.GONE)
+                        v.setViewVisibility(R.id.tv_slim_score_away,     android.view.View.VISIBLE)
+                        v.setViewVisibility(R.id.tv_slim_score_home,     android.view.View.VISIBLE)
+                        v.setViewVisibility(R.id.ll_slim_pitcher_away,   android.view.View.GONE)
+                        v.setViewVisibility(R.id.ll_slim_pitcher_home,   android.view.View.GONE)
+                        v.setTextViewText(R.id.tv_slim_ended_main,  slimStadium)
+                        v.setTextViewText(R.id.tv_slim_score_away,  fallbackAway)
+                        v.setTextViewText(R.id.tv_slim_score_home,  fallbackHome)
+                        v.setTextColor(R.id.tv_slim_score_away,
+                            if (awayInt > homeInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
+                        v.setTextColor(R.id.tv_slim_score_home,
+                            if (homeInt > awayInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
+                        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
                     }
                 }
             })

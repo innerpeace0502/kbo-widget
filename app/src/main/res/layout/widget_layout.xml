@@ -15,31 +15,35 @@
         android:gravity="center_vertical"
         android:layout_marginBottom="8dp">
 
-        <TextView
+        <!-- TextClock은 시스템이 자동 갱신 → TickService 의존성 제거 -->
+        <TextClock
             android:id="@+id/tv_time_hm"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="18:24"
+            android:format12Hour="HH:mm"
+            android:format24Hour="HH:mm"
             android:textColor="#FFFFFF"
             android:textSize="42sp"
             android:textStyle="bold"/>
 
-        <TextView
+        <TextClock
             android:id="@+id/tv_time_sec"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=":00"
+            android:format12Hour=":ss"
+            android:format24Hour=":ss"
             android:textColor="#AAAAAA"
             android:textSize="26sp"
             android:layout_marginStart="2dp"
             android:layout_marginBottom="2dp"/>
 
-        <TextView
+        <TextClock
             android:id="@+id/tv_date"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="2026.04.23 목"
+            android:format12Hour="yyyy.MM.dd EEE"
+            android:format24Hour="yyyy.MM.dd EEE"
             android:textColor="#777777"
             android:textSize="13sp"
             android:gravity="end"/>

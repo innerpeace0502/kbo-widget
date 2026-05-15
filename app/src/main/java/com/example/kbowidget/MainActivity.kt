@@ -213,6 +213,8 @@ class MainActivity : AppCompatActivity() {
             fetchGameInfo(selectedTeam, selectedIptv)
         }
 
+        // ✅ 04:00 기준 게임 날짜 변경 시 캐시 일괄 클리어
+        KboCommon.clearCacheIfDateChanged(this)
         restoreScheduleFromPrefs()   // 프로세스 재시작 시 캐시 복원
         loadGameInfo(savedTeam, savedIptv)
     }
@@ -384,16 +386,20 @@ class MainActivity : AppCompatActivity() {
                     tvScoreAwayName.text = away
                     tvScoreHomeName.text = home
                     tvStadiumInfo.text   = stadium
-                    tvGameTimeInfo.text  = "$time 시작"
-                    tvGameTimeInfo.visibility = View.VISIBLE
                     tvAwayRankLabel.text = "$away 순위"
                     tvHomeRankLabel.text = "$home 순위"
 
-                    // 스코어/이닝 초기화
-                    tvScoreAwayScore.visibility = View.GONE
-                    tvScoreHomeScore.visibility = View.GONE
-                    tvScoreInning.visibility    = View.GONE
-                    tvStatusBadge.visibility    = View.GONE
+                    // 경기종료 캐시 있으면 즉시 표시, 없으면 초기화
+                    if (cachedStatus == "2" && cachedAwayScore.isNotEmpty()) {
+                        updateScoreCard(cachedAwayScore, cachedHomeScore, "경기종료", "2")
+                    } else {
+                        tvGameTimeInfo.text  = "$time 시작"
+                        tvGameTimeInfo.visibility = View.VISIBLE
+                        tvScoreAwayScore.visibility = View.GONE
+                        tvScoreHomeScore.visibility = View.GONE
+                        tvScoreInning.visibility    = View.GONE
+                        tvStatusBadge.visibility    = View.GONE
+                    }
 
                     // 경기 예정: 가운데 VS 표시
                     if (isTomorrow) {
