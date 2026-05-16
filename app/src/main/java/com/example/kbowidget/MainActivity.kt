@@ -95,6 +95,19 @@ class MainActivity : AppCompatActivity() {
         var cachedRankingTime = 0L
         val RANKING_TTL = 10 * 60 * 1000L
         const val CACHE_TTL = 3 * 60 * 1000L
+
+        /**
+         * 날짜 변경 시 in-memory 스코어 캐시를 강제 리셋.
+         * KboCommon.clearCacheIfDateChanged가 SharedPreferences를 클리어할 때 함께 호출되어,
+         * companion object에 어제(또는 이전 시점)의 stale 스코어가 남아 표시되는 것을 방지.
+         */
+        fun resetStaleScoreCache() {
+            cachedAwayScore = ""
+            cachedHomeScore = ""
+            cachedInning    = ""
+            cachedStatus    = ""
+            lastLoadTime    = 0L
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -507,7 +520,9 @@ class MainActivity : AppCompatActivity() {
 
         val matchesPersist = (pStatus == "1" || pStatus == "2") && pAScore.isNotEmpty() && pDate == todayStr &&
             ((pAway == away && pHome == home) || (pAway == home && pHome == away))
+        // ✅ in-memory 캐시도 현재 표시 중인 경기 팀과 일치해야 사용 (stale 방지)
         val matchesCache   = cachedStatus == "2" && cachedAwayScore.isNotEmpty()
+            && cachedAway == away && cachedHome == home
 
         if (matchesPersist || matchesCache) {
             val aScore = if (matchesPersist) pAScore else cachedAwayScore

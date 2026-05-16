@@ -31,6 +31,9 @@ object KboCommon {
      * 저장된 게임 날짜가 현재 게임 날짜와 다르면 모든 스코어/스케줄 캐시 일괄 클리어.
      * 04:00 직후 자동으로 어제 종료 스코어를 지워 다음 경기로 전환.
      *
+     * SharedPreferences 뿐 아니라 MainActivity의 in-memory companion object 캐시도
+     * 함께 리셋해야 stale 데이터가 화면에 표시되지 않음.
+     *
      * @return 클리어가 수행됐는지 여부
      */
     fun clearCacheIfDateChanged(context: Context): Boolean {
@@ -51,6 +54,9 @@ object KboCommon {
         ).forEach { editor.remove(it) }
         editor.putString("kbo_game_date", today)
         editor.apply()
+
+        // ✅ MainActivity in-memory 캐시도 함께 리셋 (stale 0:2 표시 방지)
+        MainActivity.resetStaleScoreCache()
 
         // 로고 비트맵 캐시는 유지 (팀 변경 시에만 클리어)
         return true
