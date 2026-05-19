@@ -48,6 +48,7 @@ object KboCommon {
             "slim_status", "slim_away_score", "slim_home_score", "slim_inning", "slim_stadium", "slim_date",
             "reg_status",  "reg_away_score",  "reg_home_score",  "reg_inning",  "reg_date",   "reg_away",  "reg_home",
             "app_status",  "app_away_score",  "app_home_score",  "app_inning",  "app_date",   "app_away",  "app_home",
+            "app_away_pitchers", "app_home_pitchers",
             "app_sched_date_key", "app_sched_away", "app_sched_home", "app_sched_team",
             "app_sched_date_display", "app_sched_time", "app_sched_stadium",
             "app_sched_broadcast", "app_sched_last_load"
