@@ -3,6 +3,7 @@ package com.example.kbowidget
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -89,12 +90,29 @@ class MainActivity : AppCompatActivity() {
         var cachedHomeRecord = ""
         var cachedAwayRecent: List<String> = emptyList()
         var cachedHomeRecent: List<String> = emptyList()
+        // ✅ 투수/타자 캐시 (JSON 배열 String 형태로 저장 — 앱 재진입 시 사라짐 버그 수정)
+        var cachedAwayPitchers: String = ""
+        var cachedHomePitchers: String = ""
         var cachedAwayLogoBitmap: Bitmap? = null
         var cachedHomeLogoBitmap: Bitmap? = null
         var cachedRankingList: List<Map<String, String>> = emptyList()
         var cachedRankingTime = 0L
         val RANKING_TTL = 10 * 60 * 1000L
         const val CACHE_TTL = 3 * 60 * 1000L
+
+        // 양팀 순위 카드의 팀명 칩 배경 색상 (KboWidgetProvider와 동일 매핑)
+        val TEAM_COLORS = mapOf(
+            "LG"  to 0xFFC30452.toInt(),
+            "KT"  to 0xFFE31E26.toInt(),
+            "SSG" to 0xFFCE0E2D.toInt(),
+            "NC"  to 0xFF071D49.toInt(),
+            "두산" to 0xFF131230.toInt(),
+            "KIA" to 0xFFEA0029.toInt(),
+            "롯데" to 0xFF041E42.toInt(),
+            "삼성" to 0xFF0055A8.toInt(),
+            "한화" to 0xFFFF6600.toInt(),
+            "키움" to 0xFF820024.toInt()
+        )
 
         /**
          * 날짜 변경 시 in-memory 스코어 캐시를 강제 리셋.
@@ -106,6 +124,9 @@ class MainActivity : AppCompatActivity() {
             cachedHomeScore = ""
             cachedInning    = ""
             cachedStatus    = ""
+            // ✅ 투수/타자 캐시도 함께 리셋 (날짜 바뀌면 어제 투수 stale)
+            cachedAwayPitchers = ""
+            cachedHomePitchers = ""
             lastLoadTime    = 0L
         }
     }
@@ -298,14 +319,27 @@ class MainActivity : AppCompatActivity() {
         tvScoreAwayName.text  = cachedAway
         tvScoreHomeName.text  = cachedHome
         tvStadiumInfo.text    = cachedStadium
-        tvAwayRankLabel.text  = "${cachedAway} 순위"
-        tvHomeRankLabel.text  = "${cachedHome} 순위"
+        applyTeamChip(tvAwayRankLabel, cachedAway)
+        applyTeamChip(tvHomeRankLabel, cachedHome)
         if (cachedAwayRank.isNotEmpty())   tvAwayRank.text   = cachedAwayRank
         if (cachedHomeRank.isNotEmpty())   tvHomeRank.text   = cachedHomeRank
         if (cachedAwayRecord.isNotEmpty()) tvAwayRecord.text = cachedAwayRecord
         if (cachedHomeRecord.isNotEmpty()) tvHomeRecord.text = cachedHomeRecord
         if (cachedAwayRecent.isNotEmpty()) updateRecentView(tvAwayRecentRow1, tvAwayRecentRow2, cachedAwayRecent)
         if (cachedHomeRecent.isNotEmpty()) updateRecentView(tvHomeRecentRow1, tvHomeRecentRow2, cachedHomeRecent)
+        // ✅ 투수/타자 영역 복원 (앱 재진입 시 사라짐 버그 수정)
+        if (cachedAwayPitchers.isNotEmpty()) {
+            try {
+                layoutAwayPitcher.removeAllViews()
+                buildPitcherView(layoutAwayPitcher, JSONArray(cachedAwayPitchers))
+            } catch (_: Exception) {}
+        }
+        if (cachedHomePitchers.isNotEmpty()) {
+            try {
+                layoutHomePitcher.removeAllViews()
+                buildPitcherView(layoutHomePitcher, JSONArray(cachedHomePitchers))
+            } catch (_: Exception) {}
+        }
         updateScoreCard(cachedAwayScore, cachedHomeScore, cachedInning, cachedStatus)
         cachedAwayLogoBitmap?.let { ivScoreAwayLogo.setImageBitmap(it) }
         cachedHomeLogoBitmap?.let { ivScoreHomeLogo.setImageBitmap(it) }
@@ -399,8 +433,8 @@ class MainActivity : AppCompatActivity() {
                     tvScoreAwayName.text = away
                     tvScoreHomeName.text = home
                     tvStadiumInfo.text   = stadium
-                    tvAwayRankLabel.text = "$away 순위"
-                    tvHomeRankLabel.text = "$home 순위"
+                    applyTeamChip(tvAwayRankLabel, away)
+                    applyTeamChip(tvHomeRankLabel, home)
 
                     // 경기종료 캐시 있으면 즉시 표시, 없으면 초기화
                     if (cachedStatus == "2" && cachedAwayScore.isNotEmpty()) {
@@ -665,6 +699,17 @@ class MainActivity : AppCompatActivity() {
                 val gameStatus   = json.optString("status", "")
                 val awayPitchers = json.optJSONArray("away_pitchers") ?: JSONArray()
                 val homePitchers = json.optJSONArray("home_pitchers") ?: JSONArray()
+
+                // ✅ 앱 재진입 시 사라지지 않도록 투수/타자 JSON을 prefs + memory 캐시에 저장
+                val awayPitchersStr = awayPitchers.toString()
+                val homePitchersStr = homePitchers.toString()
+                cachedAwayPitchers = awayPitchersStr
+                cachedHomePitchers = homePitchersStr
+                getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE).edit()
+                    .putString("app_away_pitchers", awayPitchersStr)
+                    .putString("app_home_pitchers", homePitchersStr)
+                    .apply()
+
                 runOnUiThread {
                     layoutAwayPitcher.removeAllViews()
                     layoutHomePitcher.removeAllViews()
@@ -795,6 +840,17 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    /**
+     * 양팀 순위 카드의 팀명 칩(TextView)에 팀명 설정 + 팀 컬러를 배경 tint로 적용.
+     * - 칩 모양은 activity_main.xml의 @drawable/bg_team_chip (둥근 사각형)
+     * - 배경색은 TEAM_COLORS 매핑. 미등록 팀이면 회색 fallback.
+     */
+    private fun applyTeamChip(tv: TextView, team: String) {
+        tv.text = team
+        val color = TEAM_COLORS[team] ?: 0xFF555555.toInt()
+        tv.backgroundTintList = ColorStateList.valueOf(color)
+    }
+
     private fun renderRanking(
         list: List<Map<String, String>>,
         away: String, home: String, myTeam: String
@@ -838,53 +894,58 @@ class MainActivity : AppCompatActivity() {
             val textColor = if (isHighlight) "#FFD700" else "#CCCCCC"
             val subColor  = if (isHighlight) "#FFD700" else "#666666"
 
+            // 모든 컬럼 균등 너비 + 가운데 정렬 (헤더 행과 일치)
+            val cellParams = { LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
+
             // 순위
             row.addView(TextView(this).apply {
                 text = "${r["rank"]}위"
                 setTextColor(Color.parseColor(rankColor))
                 textSize = 10f
+                gravity = Gravity.CENTER
                 if (isHighlight) setTypeface(null, Typeface.BOLD)
-                layoutParams = LinearLayout.LayoutParams(30.dp, LinearLayout.LayoutParams.WRAP_CONTENT)
+                layoutParams = cellParams()
             })
-// 팀명
+            // 팀명
             row.addView(TextView(this).apply {
                 text = team
                 setTextColor(Color.parseColor(textColor))
                 textSize = 10f
+                gravity = Gravity.CENTER
                 if (isHighlight) setTypeface(null, Typeface.BOLD)
-                layoutParams = LinearLayout.LayoutParams(36.dp, LinearLayout.LayoutParams.WRAP_CONTENT)
+                layoutParams = cellParams()
             })
-// 승률
+            // 승률
             row.addView(TextView(this).apply {
                 text = pct
                 setTextColor(Color.parseColor(subColor))
                 textSize = 10f
                 gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(44.dp, LinearLayout.LayoutParams.WRAP_CONTENT)
+                layoutParams = cellParams()
             })
-// 승
+            // 승
             row.addView(TextView(this).apply {
                 text = win
                 setTextColor(Color.parseColor(subColor))
                 textSize = 10f
-                gravity = Gravity.END
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER
+                layoutParams = cellParams()
             })
-// 패
+            // 패
             row.addView(TextView(this).apply {
                 text = lose
                 setTextColor(Color.parseColor(subColor))
                 textSize = 10f
-                gravity = Gravity.END
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER
+                layoutParams = cellParams()
             })
-// 무
+            // 무
             row.addView(TextView(this).apply {
                 text = if (drawNum > 0) draw else "-"
                 setTextColor(Color.parseColor(subColor))
                 textSize = 10f
-                gravity = Gravity.END
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER
+                layoutParams = cellParams()
             })
             // 연속
             val isWinStreak = streak.contains("승")
@@ -892,11 +953,9 @@ class MainActivity : AppCompatActivity() {
                 text = streak
                 setTextColor(Color.parseColor(if (isWinStreak) "#4CD964" else "#FF6B6B"))
                 textSize = 10f
-                gravity = Gravity.END
+                gravity = Gravity.CENTER
                 if (isHighlight) setTypeface(null, Typeface.BOLD)
-                layoutParams = LinearLayout.LayoutParams(36.dp, LinearLayout.LayoutParams.WRAP_CONTENT).also {
-                    it.marginStart = 6.dp
-                }
+                layoutParams = cellParams()
             })
 
             layoutRankingContainer.addView(row)
@@ -1015,6 +1074,10 @@ class MainActivity : AppCompatActivity() {
             cachedHomeScore = pHScore
             cachedInning    = if (pStatus == "2") "경기종료" else pInning
         }
+
+        // ✅ 투수/타자 캐시 복원 (앱 재진입 시 사라짐 버그 수정)
+        cachedAwayPitchers = prefs.getString("app_away_pitchers", "") ?: ""
+        cachedHomePitchers = prefs.getString("app_home_pitchers", "") ?: ""
     }
 
     private val Int.dp: Int get() = (this * resources.displayMetrics.density).toInt()
