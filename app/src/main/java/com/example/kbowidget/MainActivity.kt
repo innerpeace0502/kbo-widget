@@ -520,6 +520,17 @@ class MainActivity : AppCompatActivity() {
                                 .putString("app_away",       away)
                                 .putString("app_home",       home)
                                 .apply()
+                        } else if (status == "3") {
+                            // 우천취소: 점수는 없지만 취소 상태 자체를 저장 (재진입 시 예정 오인 방지)
+                            prefs.edit()
+                                .putString("app_status",     "3")
+                                .putString("app_away_score", "")
+                                .putString("app_home_score", "")
+                                .putString("app_inning",     inning)
+                                .putString("app_date",       todayStr)
+                                .putString("app_away",       away)
+                                .putString("app_home",       home)
+                                .apply()
                         }
                         runOnUiThread {
                             updateScoreCard(awayScore, homeScore, inning, status)
@@ -621,6 +632,26 @@ class MainActivity : AppCompatActivity() {
                 tvStatusBadge.visibility = View.VISIBLE
                 layoutFullRanking.visibility = View.VISIBLE
                 // 경기 종료 → 루프 중지
+                stopScoreLoop()
+            }
+            "3" -> {
+                // 우천취소 (경기취소) — 점수 숨기고 취소 배지 표시
+                tvScoreAwayScore.visibility = View.GONE
+                tvScoreHomeScore.visibility = View.GONE
+                val cancelText = if (inning.isNotEmpty()) inning else "우천취소"
+                tvScoreInning.text = cancelText
+                tvScoreInning.setTextColor(Color.parseColor("#8AB4F8"))  // 청회색 (비 연상)
+                applyBadgeBackground(tvScoreInning, "#16202E", "#2A3D52")
+                tvScoreInning.textSize = 11f
+                tvScoreInning.visibility = View.VISIBLE
+                tvGameTimeInfo.visibility = View.GONE  // "시작 시간" 숨김 (예정 오인 방지)
+                // 상단 상태 배지
+                tvStatusBadge.text = cancelText
+                tvStatusBadge.setTextColor(Color.parseColor("#8AB4F8"))
+                applyBadgeBackground(tvStatusBadge, "#16202E", "#2A3D52")
+                tvStatusBadge.visibility = View.VISIBLE
+                layoutFullRanking.visibility = View.VISIBLE
+                // 취소 → 루프 중지
                 stopScoreLoop()
             }
             else -> {
@@ -1073,6 +1104,12 @@ class MainActivity : AppCompatActivity() {
             cachedAwayScore = pAScore
             cachedHomeScore = pHScore
             cachedInning    = if (pStatus == "2") "경기종료" else pInning
+        } else if (pStatus == "3" && pSDate == todayStr) {
+            // 우천취소 상태 복원 (점수 없음)
+            cachedStatus    = "3"
+            cachedAwayScore = ""
+            cachedHomeScore = ""
+            cachedInning    = pInning
         }
 
         // ✅ 투수/타자 캐시 복원 (앱 재진입 시 사라짐 버그 수정)
