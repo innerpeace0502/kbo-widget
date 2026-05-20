@@ -373,7 +373,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                             val homeScore = score.getString("home_score")
                             val inning    = score.getString("inning")
 
-                            if (awayScore.isNotEmpty()) {
+                            if (awayScore.isNotEmpty() || status == "3") {
                                 val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
                                     .format(java.util.Calendar.getInstance().time)
                                 prefs.edit()
@@ -407,6 +407,14 @@ class KboWidgetProvider : AppWidgetProvider() {
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
                                     v.setTextViewText(R.id.tv_live_inning, "최종")
                                     v.setTextViewText(R.id.tv_game_time,   "경기종료")
+                                }
+                                "3" -> {
+                                    // 우천취소: 점수 숨기고 "경기취소" 표시
+                                    v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_score_home,  android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
+                                    v.setTextViewText(R.id.tv_live_inning, "경기취소")
+                                    v.setTextViewText(R.id.tv_game_time,   "경기취소")
                                 }
                                 else -> {
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)

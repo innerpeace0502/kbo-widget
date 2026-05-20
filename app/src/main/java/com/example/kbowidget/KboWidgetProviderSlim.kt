@@ -446,6 +446,16 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                                     if (homeInt > awayInt) 0xFFFFD700.toInt() else 0xFF555555.toInt())
                                 appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
                             }
+                            "3" -> { // 우천취소 — 점수 숨기고 메인에 "경기취소"
+                                v.setViewVisibility(R.id.tv_slim_main,        android.view.View.VISIBLE)
+                                v.setViewVisibility(R.id.ll_slim_live_row,    android.view.View.GONE)
+                                v.setViewVisibility(R.id.ll_slim_ended_row,   android.view.View.GONE)
+                                v.setViewVisibility(R.id.ll_slim_channel_row, android.view.View.GONE)
+                                v.setViewVisibility(R.id.tv_slim_score_away,  android.view.View.GONE)
+                                v.setViewVisibility(R.id.tv_slim_score_home,  android.view.View.GONE)
+                                v.setTextViewText(R.id.tv_slim_main, "경기취소")
+                                appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
+                            }
                         }
                         break
                     }
