@@ -747,8 +747,11 @@ class MainActivity : AppCompatActivity() {
                     buildPitcherView(layoutAwayPitcher, awayPitchers)
                     buildPitcherView(layoutHomePitcher, homePitchers)
                 }
-                // ✅ 경기 종료 + 점수 있으면 스코어카드 업데이트 (api/scores 빈 배열 시 폴백)
-                if (gameStatus == "ended") {
+                // 경기 점수/상태의 단일 출처는 /api/scores. gameinfo의 'ended'는 폴백으로만 사용.
+                // scores가 이미 라이브(1)/종료(2)를 확정했으면 덮어쓰지 않는다.
+                // (라이브 중 gameinfo 'ended' 오판이 점수를 '경기종료'로 굳히고
+                //  스코어 갱신 루프를 멈추던 버그 방지 — 이슈1)
+                if (gameStatus == "ended" && cachedStatus != "1" && cachedStatus != "2") {
                     val awayScore = json.optString("away_score", "")
                     val homeScore = json.optString("home_score", "")
                     if (awayScore.isNotEmpty() && homeScore.isNotEmpty()) {
