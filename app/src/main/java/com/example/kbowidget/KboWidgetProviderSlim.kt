@@ -321,6 +321,19 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
             .enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {}
                 override fun onResponse(call: Call, response: Response) {
+                    // 경기가 이미 시작/종료/취소됐으면 선발투수를 표시하지 않는다.
+                    // (fetchLiveScore가 GONE 처리해도 이 콜백이 더 늦게 도착하면 선발을 다시
+                    //  켜버리는 경쟁 조건 방지 — 라이브 시작 직후 선발과 점수가 함께 뜨던 버그)
+                    val gPrefs = context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+                    val gToday = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
+                        .format(java.util.Calendar.getInstance().time)
+                    val gameStarted = listOf("slim", "reg", "app").any { pfx ->
+                        val st = gPrefs.getString("${pfx}_status", "") ?: ""
+                        val dt = gPrefs.getString("${pfx}_date", "") ?: ""
+                        dt == gToday && (st == "1" || st == "2" || st == "3")
+                    }
+                    if (gameStarted) return
+
                     val body     = response.body?.string() ?: return
                     val json     = JSONObject(body)
                     val pitchers = json.getJSONArray("pitchers")
