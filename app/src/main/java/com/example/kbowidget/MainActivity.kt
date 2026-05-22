@@ -247,6 +247,20 @@ class MainActivity : AppCompatActivity() {
             fetchGameInfo(selectedTeam, selectedIptv)
         }
 
+        // ✅ 설정 영역 접기/펼치기 토글 (펼침=◀, 접힘=▼, 상태는 prefs에 저장되어 앱 재실행에도 유지)
+        val btnToggleSettings  = findViewById<android.widget.TextView>(R.id.btn_toggle_settings)
+        val layoutSettingsBody = findViewById<android.widget.LinearLayout>(R.id.layout_settings_body)
+        fun applySettingsCollapsed(collapsed: Boolean) {
+            layoutSettingsBody.visibility = if (collapsed) android.view.View.GONE else android.view.View.VISIBLE
+            btnToggleSettings.text = if (collapsed) "▼" else "◀"
+        }
+        applySettingsCollapsed(prefs.getBoolean("settings_collapsed", false))  // 기본 펼침
+        btnToggleSettings.setOnClickListener {
+            val collapsed = !prefs.getBoolean("settings_collapsed", false)
+            prefs.edit().putBoolean("settings_collapsed", collapsed).apply()
+            applySettingsCollapsed(collapsed)
+        }
+
         // ✅ 04:00 기준 게임 날짜 변경 시 캐시 일괄 클리어
         KboCommon.clearCacheIfDateChanged(this)
         restoreScheduleFromPrefs()   // 프로세스 재시작 시 캐시 복원

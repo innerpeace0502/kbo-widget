@@ -22,14 +22,43 @@
             android:padding="12dp"
             android:layout_marginBottom="12dp">
 
-            <TextView
+            <!-- 헤더: 타이틀 + 접기/펼치기 토글 버튼 -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="KBO 위젯 설정"
-                android:textColor="#FFD700"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:paddingBottom="8dp"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="KBO 위젯 설정"
+                    android:textColor="#FFD700"
+                    android:textSize="13sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/btn_toggle_settings"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:text="◀"
+                    android:textColor="#141414"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/bg_toggle_btn"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- 토글로 접히는 설정 본문 (응원팀/IPTV/투명도/저장) -->
+            <LinearLayout
+                android:id="@+id/layout_settings_body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
             <!-- 팀/IPTV 가로 배치 -->
             <LinearLayout
@@ -128,6 +157,7 @@
                 android:textColor="#0F0F1A"
                 android:textStyle="bold"
                 android:textSize="12sp"/>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 상태 메시지 -->
