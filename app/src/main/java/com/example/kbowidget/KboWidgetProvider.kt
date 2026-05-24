@@ -267,8 +267,7 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                     // 캐시된 스코어 즉시 표시 (reg_* 우선, 없으면 app_* 폴백)
                     run {
-                        val today2 = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                            .format(java.util.Calendar.getInstance().time)
+                        val today2 = KboCommon.getGameDate()  // 04:00 컷오프 통일
                         val regSt = prefs.getString("reg_status","") ?: ""
                         val regAs = prefs.getString("reg_away_score","") ?: ""
                         val regHs = prefs.getString("reg_home_score","") ?: ""
@@ -374,8 +373,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                             val inning    = score.getString("inning")
 
                             if (awayScore.isNotEmpty() || status == "3") {
-                                val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                                    .format(java.util.Calendar.getInstance().time)
+                                val todayStr = KboCommon.getGameDate()  // 04:00 컷오프 통일
                                 prefs.edit()
                                     .putString("reg_status",     status)
                                     .putString("reg_away_score", awayScore)
@@ -448,8 +446,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         val savedDate      = prefs.getString("reg_date", "") ?: ""
         val savedAway      = prefs.getString("reg_away", "") ?: ""
         val savedHome      = prefs.getString("reg_home", "") ?: ""
-        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-            .format(java.util.Calendar.getInstance().time)
+        val todayStr = KboCommon.getGameDate()  // 04:00 컷오프 통일
 
         val regMatch = savedDate == todayStr
             && ((savedAway == away && savedHome == home) || (savedAway == home && savedHome == away))

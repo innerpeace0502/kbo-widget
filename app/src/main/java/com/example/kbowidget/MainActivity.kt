@@ -136,6 +136,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val prefs = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+        // ✅ 일회성 마이그레이션 — 옛 SimpleDateFormat(단순 날짜) 기반으로 자정~04:00에
+        // 잘못 저장된 어제 캐시를 청소. 한 번 실행되면 prefs_migration_v2_done 플래그로 스킵.
+        KboCommon.runMigrationV2IfNeeded(this)
 
         spinnerTeam            = findViewById(R.id.spinner_team)
         spinnerIptv            = findViewById(R.id.spinner_iptv)

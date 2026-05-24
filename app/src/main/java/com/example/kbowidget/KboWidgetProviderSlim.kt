@@ -174,10 +174,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                     val savedHomeScore = prefs.getString("slim_home_score", "") ?: ""
                     val savedStadium   = prefs.getString("slim_stadium", "") ?: ""
                     val savedDate      = prefs.getString("slim_date", "") ?: ""
-                    val today          = com.example.kbowidget.KboWidgetProvider.run {
-                        java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                            .format(java.util.Calendar.getInstance().time)
-                    }
+                    val today          = KboCommon.getGameDate()  // 04:00 컷오프 통일
 
                     // reg_* 또는 app_*에 오늘 종료 스코어가 있으면 slim_* 스테일 값보다 우선 사용
                     // (팀명 매칭 없이 날짜만 확인 — 하루에 한 팀 한 경기이므로 충분)
@@ -325,8 +322,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                     // (fetchLiveScore가 GONE 처리해도 이 콜백이 더 늦게 도착하면 선발을 다시
                     //  켜버리는 경쟁 조건 방지 — 라이브 시작 직후 선발과 점수가 함께 뜨던 버그)
                     val gPrefs = context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
-                    val gToday = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                        .format(java.util.Calendar.getInstance().time)
+                    val gToday = KboCommon.getGameDate()  // 04:00 컷오프 통일
                     val gameStarted = listOf("slim", "reg", "app").any { pfx ->
                         val st = gPrefs.getString("${pfx}_status", "") ?: ""
                         val dt = gPrefs.getString("${pfx}_date", "") ?: ""
@@ -408,9 +404,8 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                         val awayInt   = awayScore.toIntOrNull() ?: 0
                         val homeInt   = homeScore.toIntOrNull() ?: 0
 
-                        // ✅ SharedPreferences에 날짜 포함 저장
-                        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                            .format(java.util.Calendar.getInstance().time)
+                        // ✅ SharedPreferences에 날짜 포함 저장 (04:00 컷오프 통일)
+                        val todayStr = KboCommon.getGameDate()
                         prefs.edit()
                             .putString("slim_status",     status)
                             .putString("slim_away_score", awayScore)
@@ -476,8 +471,7 @@ class KboWidgetProviderSlim : AppWidgetProvider() {
                     // ✅ 경기를 찾지 못한 경우 → reg_*/app_* 확정 종료 스코어로 복원
                     // reg_*/app_*를 못 찾으면 아무것도 덮어쓰지 않음 (fetchGameData 사전 표시 유지)
                     if (!found) {
-                        val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA)
-                            .format(java.util.Calendar.getInstance().time)
+                        val todayStr = KboCommon.getGameDate()  // 04:00 컷오프 통일
 
                         var fallbackAway = ""; var fallbackHome = ""
                         for (pfx in listOf("reg", "app")) {

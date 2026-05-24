@@ -28,6 +28,26 @@ object KboCommon {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     /**
+     * 일회성 마이그레이션 — 옛 위젯이 자정~04:00 사이에 SimpleDateFormat(단순 날짜)
+     * 키로 어제 데이터를 reg_/app_/slim_에 "오늘"인 양 잘못 저장한 stale 캐시를 한 번에 청소.
+     * 이 버전부터 모든 todayStr 계산을 04:00 컷오프(getGameDate)로 통일하므로
+     * 청소 후엔 같은 문제가 재발하지 않는다.
+     */
+    fun runMigrationV2IfNeeded(context: Context) {
+        val prefs = prefs(context)
+        if (prefs.getBoolean("prefs_migration_v2_done", false)) return
+        val editor = prefs.edit()
+        listOf(
+            "slim_status", "slim_away_score", "slim_home_score", "slim_inning", "slim_stadium", "slim_date",
+            "reg_status",  "reg_away_score",  "reg_home_score",  "reg_inning",  "reg_date",   "reg_away",  "reg_home",
+            "app_status",  "app_away_score",  "app_home_score",  "app_inning",  "app_date",   "app_away",  "app_home"
+        ).forEach { editor.remove(it) }
+        editor.putBoolean("prefs_migration_v2_done", true)
+        editor.apply()
+        MainActivity.resetStaleScoreCache()
+    }
+
+    /**
      * 저장된 게임 날짜가 현재 게임 날짜와 다르면 모든 스코어/스케줄 캐시 일괄 클리어.
      * 04:00 직후 자동으로 어제 종료 스코어를 지워 다음 경기로 전환.
      *
@@ -37,6 +57,8 @@ object KboCommon {
      * @return 클리어가 수행됐는지 여부
      */
     fun clearCacheIfDateChanged(context: Context): Boolean {
+        // ✅ 위젯/앱 어디서 호출되든 마이그레이션이 한 번은 보장되도록 첫 줄에서 트리거.
+        runMigrationV2IfNeeded(context)
         val prefs = prefs(context)
         val saved = prefs.getString("kbo_game_date", "") ?: ""
         val today = getGameDate()
