@@ -263,6 +263,9 @@ class MainActivity : AppCompatActivity() {
 
         // ✅ 04:00 기준 게임 날짜 변경 시 캐시 일괄 클리어
         KboCommon.clearCacheIfDateChanged(this)
+        // ✅ 앱을 열 때마다 위젯도 강제 갱신 — 위젯 onUpdate 알람이 막혀(배터리 최적화 등)
+        // 화면이 stale일 때, 앱을 한 번 열기만 하면 위젯이 즉시 새 데이터로 다시 그려진다.
+        KboCommon.triggerWidgetRefresh(this)
         restoreScheduleFromPrefs()   // 프로세스 재시작 시 캐시 복원
         loadGameInfo(savedTeam, savedIptv)
     }

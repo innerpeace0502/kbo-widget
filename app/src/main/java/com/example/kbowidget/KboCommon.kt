@@ -59,6 +59,10 @@ object KboCommon {
         // ✅ MainActivity in-memory 캐시도 함께 리셋 (stale 0:2 표시 방지)
         MainActivity.resetStaleScoreCache()
 
+        // ✅ 위젯 RemoteViews 강제 갱신 — 휴대폰 재부팅 등으로 위젯 onUpdate 알람이
+        // 막혀 화면이 전날 상태로 멈춰있던 문제 방지.
+        triggerWidgetRefresh(context)
+
         // 로고 비트맵 캐시는 유지 (팀 변경 시에만 클리어)
         return true
     }
