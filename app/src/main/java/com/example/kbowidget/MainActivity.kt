@@ -935,12 +935,17 @@ class MainActivity : AppCompatActivity() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).also { it.bottomMargin = 1 }
-                setPadding(if (isHighlight) 3.dp else 0, 4, if (isHighlight) 3.dp else 0, 4)
+                // ✅ 모든 행 좌우 padding 0으로 통일 → 셀 너비(W/7)가 일관되어
+                // 컬럼 중앙선이 헤더 및 다른 행과 정확히 정렬된다.
+                // 하이라이트 강조 박스는 좌우 inset 효과를 InsetDrawable로 적용해
+                // 셀 너비를 건드리지 않으면서 시각적 안쪽 여유만 유지.
+                setPadding(0, 4, 0, 4)
                 if (isHighlight) {
-                    val bg = android.graphics.drawable.GradientDrawable()
-                    bg.setColor(Color.parseColor("#14140A"))
-                    bg.cornerRadius = 5f
-                    background = bg
+                    val bg = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(Color.parseColor("#14140A"))
+                        cornerRadius = 5f
+                    }
+                    background = android.graphics.drawable.InsetDrawable(bg, 3.dp, 0, 3.dp, 0)
                 }
             }
 
