@@ -946,6 +946,10 @@ class MainActivity : AppCompatActivity() {
                         cornerRadius = 5f
                     }
                     background = android.graphics.drawable.InsetDrawable(bg, 3.dp, 0, 3.dp, 0)
+                    // ⚠️ View.setBackground는 drawable.getPadding()으로 View padding을
+                    // 자동 덮어쓴다. InsetDrawable의 inset 값(3dp)이 padding으로 적용되어
+                    // 셀 너비가 다시 좁아지므로, background 설정 후 padding을 다시 명시한다.
+                    setPadding(0, 4, 0, 4)
                 }
             }
 
