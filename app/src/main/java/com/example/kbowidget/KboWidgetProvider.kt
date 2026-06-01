@@ -265,7 +265,9 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                     appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
 
-                    // 캐시된 스코어 즉시 표시 (reg_* 우선, 없으면 app_* 폴백)
+                    // ✅ 캐시된 스코어 즉시 표시 — 종료(2) > 진행(1) 우선순위.
+                    // 슬림의 effectiveStatus 패턴: 한쪽 prefs(reg_ 또는 app_)에 stale한
+                    // 진행중(1)이 남아있어도 다른 쪽에 종료(2)가 있으면 종료를 우선 표시한다.
                     run {
                         val today2 = KboCommon.getGameDate()  // 04:00 컷오프 통일
                         val regSt = prefs.getString("reg_status","") ?: ""
@@ -280,25 +282,43 @@ class KboWidgetProvider : AppWidgetProvider() {
                         val appDt = prefs.getString("app_date","") ?: ""
                         val appAw = prefs.getString("app_away","") ?: ""
                         val appHo = prefs.getString("app_home","") ?: ""
-                        val useReg = (regSt=="1"||regSt=="2") && regAs.isNotEmpty() && regDt==today2
-                            && ((regAw==away&&regHo==home)||(regAw==home&&regHo==away))
-                        val useApp = !useReg && (appSt=="1"||appSt=="2") && appAs.isNotEmpty() && appDt==today2
-                            && ((appAw==away&&appHo==home)||(appAw==home&&appHo==away))
-                        if (useReg || useApp) {
-                            val aScore = if (useReg) regAs else appAs
-                            val hScore = if (useReg) regHs else appHs
-                            val status = if (useReg) regSt else appSt
+
+                        val regMatched = regDt == today2 && regAs.isNotEmpty()
+                            && ((regAw == away && regHo == home) || (regAw == home && regHo == away))
+                        val appMatched = appDt == today2 && appAs.isNotEmpty()
+                            && ((appAw == away && appHo == home) || (appAw == home && appHo == away))
+
+                        val regEnded = regMatched && regSt == "2"
+                        val appEnded = appMatched && appSt == "2"
+                        val regLive  = regMatched && regSt == "1"
+                        val appLive  = appMatched && appSt == "1"
+
+                        // 우선순위: 종료(reg) > 종료(app) > 진행(reg) > 진행(app)
+                        val choice: Triple<String, String, String>? = when {
+                            regEnded -> Triple(regAs, regHs, "2")
+                            appEnded -> Triple(appAs, appHs, "2")
+                            regLive  -> Triple(regAs, regHs, "1")
+                            appLive  -> Triple(appAs, appHs, "1")
+                            else     -> null
+                        }
+                        if (choice != null) {
+                            val (aScore, hScore, useStatus) = choice
                             val vc = RemoteViews(context.packageName, R.layout.widget_layout)
                             vc.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
                             vc.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
                             vc.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                             vc.setTextViewText(R.id.tv_score_away, aScore)
                             vc.setTextViewText(R.id.tv_score_home, hScore)
-                            if (status == "2") {
+                            if (useStatus == "2") {
                                 vc.setTextViewText(R.id.tv_live_inning, "최종")
                                 vc.setTextViewText(R.id.tv_game_time,   "경기종료")
                             } else {
-                                val inning = if (useReg) (prefs.getString("reg_inning","") ?: "") else (prefs.getString("app_inning","") ?: "")
+                                // 진행중 — inning은 선택된 쪽 prefs에서
+                                val inning = when {
+                                    regLive -> prefs.getString("reg_inning","") ?: ""
+                                    appLive -> prefs.getString("app_inning","") ?: ""
+                                    else -> ""
+                                }
                                 vc.setTextViewText(R.id.tv_live_inning, inning)
                             }
                             appWidgetManager.partiallyUpdateAppWidget(appWidgetId, vc)
@@ -344,7 +364,9 @@ class KboWidgetProvider : AppWidgetProvider() {
         away: String,
         home: String
     ) {
-        val url   = "https://web-production-6aae76.up.railway.app/api/scores?team=$away"
+        // ✅ 전체 scores 조회 (슬림과 동일) — team 필터로 서버가 특정 경기를 누락했을 때
+        // 다른 경기 응답에도 영향받지 않게 전체에서 응원팀 매치업을 자체적으로 찾는다.
+        val url   = "https://web-production-6aae76.up.railway.app/api/scores"
         val prefs = context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
 
         OkHttpClient().newCall(Request.Builder().url(url).build())
@@ -365,7 +387,8 @@ class KboWidgetProvider : AppWidgetProvider() {
                         val sAway = score.getString("away")
                         val sHome = score.getString("home")
 
-                        if (sAway == away && sHome == home) {
+                        // ✅ 홈/어웨이 반전도 체크 (슬림과 동일) — 서버 응답 순서 차이에도 안전
+                        if ((sAway == away && sHome == home) || (sAway == home && sHome == away)) {
                             found = true
                             val status    = score.getString("status")
                             val awayScore = score.getString("away_score")
