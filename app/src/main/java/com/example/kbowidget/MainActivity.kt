@@ -317,6 +317,11 @@ class MainActivity : AppCompatActivity() {
                 if (cachedAway.isNotEmpty()) {
                     val myTeam = if (cachedTeam == "전체") "" else cachedTeam
                     loadScores(cachedAway, cachedHome, myTeam)
+                    // ✅ 투수/타자 정보도 함께 주기 갱신 — gameinfo route는 경기 중 매 타석마다
+                    // 바뀌는 투/타 정보를 주는데, 이전엔 loadScores만 polling되고 loadPitcherInfo는
+                    // 초기 1회만 호출되어 화면에 stale한 투타 정보가 새로고침 누르기 전까지 남았음.
+                    val teamParam = if (cachedTeam == "전체") cachedAway else cachedTeam
+                    loadPitcherInfo(teamParam)
                 }
                 // 경기 중일 때만 반복
                 if (cachedStatus == "1") {
