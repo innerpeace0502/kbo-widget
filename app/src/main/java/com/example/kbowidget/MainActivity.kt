@@ -311,6 +311,13 @@ class MainActivity : AppCompatActivity() {
             val teamParam = if (cachedTeam == "전체") cachedAway else cachedTeam
             loadPitcherInfo(teamParam)
         }
+        // ✅ 순위 캐시(in-memory companion)가 비면 다시 가져온다 — 프로세스 재시작·새 APK 설치
+        // 후엔 cachedRankingList가 빈 상태인데 restoreScheduleFromPrefs는 prefs에 없는 순위를
+        // 복원하지 못해 양팀 순위·전체 순위표가 안 보이던 문제.
+        if (cachedRankingList.isEmpty() && cachedAway.isNotEmpty()) {
+            val myTeam = if (cachedTeam == "전체") "" else cachedTeam
+            loadRanking(cachedAway, cachedHome, myTeam)
+        }
     }
 
     override fun onPause() {
@@ -420,6 +427,12 @@ class MainActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         if (now - lastLoadTime < CACHE_TTL && cachedAway.isNotEmpty() && team == cachedTeam) {
             restoreCachedUI()
+            // ✅ 순위 캐시(in-memory)가 비면 (프로세스 재시작 후 prefs에 순위는 없음)
+            // loadRanking을 다시 호출해 양팀 순위·전체 순위표를 채운다.
+            if (cachedRankingList.isEmpty()) {
+                val myTeam = if (cachedTeam == "전체") "" else cachedTeam
+                loadRanking(cachedAway, cachedHome, myTeam)
+            }
             return
         }
         fetchGameInfo(team, iptv)
