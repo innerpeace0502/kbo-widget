@@ -930,6 +930,15 @@ class MainActivity : AppCompatActivity() {
                 }
                 cachedRankingList = list
                 cachedRankingTime = System.currentTimeMillis()
+                // ✅ 순위를 prefs에도 저장 — companion만으론 프로세스 재시작·새 APK 설치 후
+                // 빈 상태가 되어 화면에 순위가 안 뜨던 문제. JSON 원문 + 갱신시각을 같이 저장해
+                // restoreScheduleFromPrefs가 즉시 복원해 비동기 API 응답을 기다리지 않게 한다.
+                try {
+                    getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("app_ranking_json", ranking.toString())
+                        .putLong("app_ranking_time", cachedRankingTime)
+                        .apply()
+                } catch (_: Exception) {}
                 runOnUiThread {
                     layoutFullRanking.visibility = View.VISIBLE
                     renderRanking(list, away, home, myTeam)
@@ -1191,6 +1200,31 @@ class MainActivity : AppCompatActivity() {
         // ✅ 투수/타자 캐시 복원 (앱 재진입 시 사라짐 버그 수정)
         cachedAwayPitchers = prefs.getString("app_away_pitchers", "") ?: ""
         cachedHomePitchers = prefs.getString("app_home_pitchers", "") ?: ""
+
+        // ✅ 순위 캐시 복원 — companion var만으론 프로세스 재시작·새 APK 설치 후 빈 상태가 되어
+        // 양팀 순위·전체 순위표가 안 뜨던 문제. loadRanking이 prefs에도 저장하므로 여기서
+        // 즉시 deserialize해 restoreCachedUI가 바로 renderRanking을 호출 가능하게 한다.
+        // 신선도는 다음 loadRanking 호출이 처리(TTL 외면 새로 받음).
+        val rankingJson = prefs.getString("app_ranking_json", "") ?: ""
+        if (rankingJson.isNotEmpty()) {
+            try {
+                val arr = JSONArray(rankingJson)
+                val list = (0 until arr.length()).map { i ->
+                    val r = arr.getJSONObject(i)
+                    mapOf(
+                        "rank"   to r.getString("rank"),
+                        "team"   to r.getString("team"),
+                        "pct"    to r.optString("pct", ""),
+                        "win"    to r.getString("win"),
+                        "lose"   to r.getString("lose"),
+                        "draw"   to r.optString("draw", "0"),
+                        "streak" to r.optString("streak", "")
+                    )
+                }
+                cachedRankingList = list
+                cachedRankingTime = prefs.getLong("app_ranking_time", 0L)
+            } catch (_: Exception) {}
+        }
     }
 
     private val Int.dp: Int get() = (this * resources.displayMetrics.density).toInt()
