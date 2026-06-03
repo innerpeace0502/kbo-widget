@@ -303,6 +303,14 @@ class MainActivity : AppCompatActivity() {
             loadScores(cachedAway, cachedHome, myTeam)
         }
         // 경기 전 상태이고 오늘 날짜면 캐시 그대로 표시
+        // ✅ 경기 전·종료 상태에서도 투수/타자 정보를 한 번 다시 가져와 stale 방지.
+        // 라이브(1)는 startScoreLoop가 polling하므로 여기선 제외. 슬림 위젯은 /api/pitcher/today를
+        // 60초마다 호출해 선발이 보이는데 앱은 /api/gameinfo를 onResume 흐름에서 다시 안 불러
+        // 경기 전 시점의 선발투수가 안 뜨던 문제 수정.
+        if (cachedStatus != "1" && cachedAway.isNotEmpty()) {
+            val teamParam = if (cachedTeam == "전체") cachedAway else cachedTeam
+            loadPitcherInfo(teamParam)
+        }
     }
 
     override fun onPause() {
@@ -344,6 +352,15 @@ class MainActivity : AppCompatActivity() {
         tvScoreAwayName.text  = cachedAway
         tvScoreHomeName.text  = cachedHome
         tvStadiumInfo.text    = cachedStadium
+        // ✅ 시작시간/채널 정보 복원 — 앱을 백그라운드로 보냈다 다시 들어오면
+        // restoreCachedUI에서 이 두 항목을 안 그려서 사라지던 버그.
+        if (cachedTime.isNotEmpty()) {
+            tvGameTimeInfo.text = "$cachedTime 시작"
+            tvGameTimeInfo.visibility = View.VISIBLE
+        }
+        if (cachedBroadcast.isNotEmpty()) {
+            tvChannelInfo.text = broadcastName(cachedBroadcast)
+        }
         applyTeamChip(tvAwayRankLabel, cachedAway)
         applyTeamChip(tvHomeRankLabel, cachedHome)
         if (cachedAwayRank.isNotEmpty())   tvAwayRank.text   = cachedAwayRank
