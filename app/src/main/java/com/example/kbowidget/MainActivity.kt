@@ -359,7 +359,16 @@ class MainActivity : AppCompatActivity() {
             tvGameTimeInfo.visibility = View.VISIBLE
         }
         if (cachedBroadcast.isNotEmpty()) {
-            tvChannelInfo.text = broadcastName(cachedBroadcast)
+            val chName = broadcastName(cachedBroadcast)
+            // ✅ 채널번호도 다시 가져온다 — IPTV 설정 + broadcast 조합으로 fetchChannelNumber
+            // 비동기 호출. 안 부르면 채널명만 보이고 번호는 사라진다.
+            val prefsCh = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+            val iptvCh = prefsCh.getString("iptv", "") ?: ""
+            if (iptvCh.isNotEmpty() && cachedBroadcast != "tving") {
+                fetchChannelNumber(iptvCh, cachedBroadcast, chName)
+            } else {
+                tvChannelInfo.text = chName
+            }
         }
         applyTeamChip(tvAwayRankLabel, cachedAway)
         applyTeamChip(tvHomeRankLabel, cachedHome)
