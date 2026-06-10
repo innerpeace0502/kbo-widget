@@ -60,11 +60,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutRankingContainer: LinearLayout
 
     private val BASE = "https://web-production-6aae76.up.railway.app"
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val client = KboCommon.httpClient
 
     // 경기 중 자동 갱신 루프
     private val scoreHandler = Handler(Looper.getMainLooper())
@@ -447,6 +443,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { if (cachedAway.isNotEmpty()) restoreCachedUI() }
             }
             override fun onResponse(call: Call, response: Response) {
+                try {
                 val body  = response.body?.string() ?: return
                 val json  = JSONObject(body)
                 val games = json.getJSONArray("경기목록")
@@ -538,6 +535,7 @@ class MainActivity : AppCompatActivity() {
                     loadScores(away, home, myTeam)
                     loadLogos(away, home)
                 }
+                } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
     }
@@ -554,6 +552,7 @@ class MainActivity : AppCompatActivity() {
                 restorePersistedScore(away, home, myTeam, prefs, todayStr)
             }
             override fun onResponse(call: Call, response: Response) {
+                try {
                 val body   = response.body?.string() ?: return
                 val json   = JSONObject(body)
                 val scores = json.getJSONArray("scores")
@@ -611,6 +610,7 @@ class MainActivity : AppCompatActivity() {
                 if (!found) {
                     restorePersistedScore(away, home, myTeam, prefs, todayStr)
                 }
+                } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
     }
@@ -775,10 +775,12 @@ class MainActivity : AppCompatActivity() {
         ).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {}
             override fun onResponse(call: Call, response: Response) {
+                try {
                 val ch = JSONObject(response.body?.string() ?: "{}").optString("채널번호", "")
                 runOnUiThread {
                     tvChannelInfo.text = if (ch.isNotEmpty()) "$chName ${ch}ch" else chName
                 }
+                } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
     }
@@ -789,6 +791,7 @@ class MainActivity : AppCompatActivity() {
         ).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {}
             override fun onResponse(call: Call, response: Response) {
+                try {
                 val body = response.body?.string() ?: return
                 val json = JSONObject(body)
                 val gameStatus   = json.optString("status", "")
@@ -842,6 +845,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+                } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
     }
@@ -913,6 +917,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             override fun onResponse(call: Call, response: Response) {
+                try {
                 val body    = response.body?.string() ?: return
                 val json    = JSONObject(body)
                 val ranking = json.getJSONArray("ranking")
@@ -943,6 +948,7 @@ class MainActivity : AppCompatActivity() {
                     layoutFullRanking.visibility = View.VISIBLE
                     renderRanking(list, away, home, myTeam)
                 }
+                } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
     }
@@ -1104,6 +1110,7 @@ class MainActivity : AppCompatActivity() {
             ).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {}
                 override fun onResponse(call: Call, response: Response) {
+                    try {
                     val body   = response.body?.string() ?: return
                     val json   = JSONObject(body)
                     val recent = json.getJSONArray("recent")
@@ -1112,6 +1119,7 @@ class MainActivity : AppCompatActivity() {
                         if (isAway) cachedAwayRecent = list else cachedHomeRecent = list
                         updateRecentView(row1, row2, list)
                     }
+                    } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
                 }
             })
         }

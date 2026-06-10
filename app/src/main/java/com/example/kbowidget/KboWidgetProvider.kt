@@ -57,7 +57,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         fun loadLogoBitmap(url: String, team: String, onLoaded: (Bitmap?) -> Unit) {
             logoCache[team]?.let { onLoaded(it); return }
             // 디스크 캐시는 context가 없어 호출자가 별도 제공해야 함. 메모리 캐시 미스 시 네트워크.
-            OkHttpClient().newCall(Request.Builder().url(url).build())
+            KboCommon.httpClient.newCall(Request.Builder().url(url).build())
                 .enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) { onLoaded(null) }
                     override fun onResponse(call: Call, response: Response) {
@@ -87,7 +87,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                     return
                 }
             }
-            OkHttpClient().newCall(Request.Builder().url(url).build())
+            KboCommon.httpClient.newCall(Request.Builder().url(url).build())
                 .enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) { onLoaded(null) }
                     override fun onResponse(call: Call, response: Response) {
@@ -110,7 +110,7 @@ class KboWidgetProvider : AppWidgetProvider() {
             )
             am.setExactAndAllowWhileIdle(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + 60_000L,
+                SystemClock.elapsedRealtime() + KboCommon.fetchIntervalMs(context),
                 pi
             )
         }
@@ -189,10 +189,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         val teamParam = if (team == "전체") "" else "?team=$team"
         val url = "https://web-production-6aae76.up.railway.app/api/schedule/today$teamParam"
 
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        val client = KboCommon.httpClient
 
         client.newCall(Request.Builder().url(url).build())
             .enqueue(object : Callback {
@@ -201,6 +198,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    try {
                     val body  = response.body?.string() ?: return
                     val json  = JSONObject(body)
                     val games = json.getJSONArray("경기목록")
@@ -353,6 +351,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                     }
 
                     fetchLiveScore(context, appWidgetManager, appWidgetId, away, home)
+                    } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
                 }
             })
     }
@@ -369,7 +368,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         val url   = "https://web-production-6aae76.up.railway.app/api/scores"
         val prefs = context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
 
-        OkHttpClient().newCall(Request.Builder().url(url).build())
+        KboCommon.httpClient.newCall(Request.Builder().url(url).build())
             .enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     println("[스코어] API 호출 실패: ${e.message}")
@@ -377,6 +376,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    try {
                     val body   = response.body?.string() ?: return
                     val json   = JSONObject(body)
                     val scores = json.getJSONArray("scores")
@@ -451,6 +451,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                     if (!found) {
                         restoreCachedScore(context, appWidgetManager, appWidgetId, away, home, prefs)
                     }
+                    } catch (e: Exception) { println("[스코어] 응답 처리 오류: ${e.message}"); restoreCachedScore(context, appWidgetManager, appWidgetId, away, home, prefs) }
                 }
             })
     }
@@ -522,12 +523,12 @@ class KboWidgetProvider : AppWidgetProvider() {
             "tving"        -> "TVING"
             else           -> broadcaster.uppercase()
         }
-        OkHttpClient().newCall(Request.Builder()
+        KboCommon.httpClient.newCall(Request.Builder()
             .url("https://web-production-6aae76.up.railway.app/api/channel?iptv=$iptv&broadcaster=$broadcaster")
             .build()).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {}
             override fun onResponse(call: Call, response: Response) {
-                val ch = JSONObject(response.body?.string() ?: "{}").optString("채널번호", "")
+                val ch = try { JSONObject(response.body?.string() ?: "{}").optString("채널번호", "") } catch (_: Exception) { "" }
                 val v  = RemoteViews(context.packageName, R.layout.widget_layout)
                 val chText = if (ch.isNotEmpty() && broadcaster != "tving") "$name  ${ch}ch" else name
                 v.setTextViewText(R.id.tv_channel, chText)
@@ -542,7 +543,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         iptv: String
     ) {
-        val client = OkHttpClient()
+        val client = KboCommon.httpClient
         var ch1 = ""; var ch2 = ""; var count = 0
 
         fun done() {
@@ -559,7 +560,7 @@ class KboWidgetProvider : AppWidgetProvider() {
             .build()).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { ch1 = "?"; done() }
             override fun onResponse(call: Call, response: Response) {
-                ch1 = JSONObject(response.body?.string() ?: "{}").optString("채널번호", "?")
+                ch1 = try { JSONObject(response.body?.string() ?: "{}").optString("채널번호", "?") } catch (_: Exception) { "?" }
                 done()
             }
         })
@@ -569,7 +570,7 @@ class KboWidgetProvider : AppWidgetProvider() {
             .build()).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { ch2 = "?"; done() }
             override fun onResponse(call: Call, response: Response) {
-                ch2 = JSONObject(response.body?.string() ?: "{}").optString("채널번호", "?")
+                ch2 = try { JSONObject(response.body?.string() ?: "{}").optString("채널번호", "?") } catch (_: Exception) { "?" }
                 done()
             }
         })
