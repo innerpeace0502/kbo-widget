@@ -2,9 +2,11 @@ package com.example.kbowidget
 
 import android.content.Context
 import android.content.SharedPreferences
+import okhttp3.OkHttpClient
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
  * 두 위젯과 메인 앱이 공유하는 공통 유틸.
@@ -26,6 +28,35 @@ object KboCommon {
     /** SharedPreferences 핸들 */
     fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    /**
+     * 두 위젯·앱이 공유하는 단일 OkHttp 클라이언트.
+     * 호출마다 OkHttpClient()를 새로 만들면 커넥션 풀·스레드 풀이 매번 생성돼
+     * keep-alive 재사용이 안 되고(TLS 핸드셰이크 반복) 메모리만 낭비된다.
+     */
+    val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    /**
+     * 위젯 갱신 알람 주기 — 오늘 경기가 종료(2)/취소(3)로 확정되면 10분으로 완화.
+     * 다음 04:00(게임 날짜 변경 → clearCacheIfDateChanged가 캐시 클리어)에 60초로 자동 복귀.
+     * 완전 중단이 아닌 '완화'인 이유: 더블헤더 2차전 등 같은 날 추가 경기를
+     * 최대 10분 지연으로는 잡아내기 위함. 종료 후 밤새 60초 폴링하던 배터리 낭비 제거.
+     */
+    fun fetchIntervalMs(context: Context): Long {
+        val prefs = prefs(context)
+        val today = getGameDate()
+        val ended = listOf("reg", "app", "slim").any { pfx ->
+            val st = prefs.getString("${pfx}_status", "") ?: ""
+            val dt = prefs.getString("${pfx}_date", "") ?: ""
+            dt == today && (st == "2" || st == "3")
+        }
+        return if (ended) 10 * 60_000L else 60_000L
+    }
 
     /**
      * 일회성 마이그레이션 — 옛 위젯이 자정~04:00 사이에 SimpleDateFormat(단순 날짜)
