@@ -225,6 +225,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                         v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)
                         v.setViewVisibility(R.id.tv_score_home,  android.view.View.GONE)
                         v.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
+                        v.setViewVisibility(R.id.iv_situation,   android.view.View.GONE)
                         appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
                         return
                     }
@@ -394,6 +395,11 @@ class KboWidgetProvider : AppWidgetProvider() {
                             val awayScore = score.getString("away_score")
                             val homeScore = score.getString("home_score")
                             val inning    = score.getString("inning")
+                            // 경기 상황(아웃·볼카운트·주자) — 서버가 라이브 경기에만 채움
+                            val sBalls    = score.optInt("balls", -1)
+                            val sStrikes  = score.optInt("strikes", 0)
+                            val sOuts     = score.optInt("outs", 0)
+                            val sBases    = score.optJSONArray("bases")
 
                             if (awayScore.isNotEmpty() || status == "3") {
                                 val todayStr = KboCommon.getGameDate()  // 04:00 컷오프 통일
@@ -419,6 +425,19 @@ class KboWidgetProvider : AppWidgetProvider() {
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
                                     v.setTextViewText(R.id.tv_live_inning, inning)
                                     v.setTextViewText(R.id.tv_game_time,   "$awayScore : $homeScore")
+                                    // 주자 다이아몬드 + B·S·O (필드 있을 때만)
+                                    if (sBases != null && sBalls >= 0) {
+                                        val bases = booleanArrayOf(
+                                            sBases.optBoolean(0, false),
+                                            sBases.optBoolean(1, false),
+                                            sBases.optBoolean(2, false)
+                                        )
+                                        v.setImageViewBitmap(R.id.iv_situation,
+                                            SituationDrawer.makeBitmap(bases, sBalls, sStrikes, sOuts))
+                                        v.setViewVisibility(R.id.iv_situation, android.view.View.VISIBLE)
+                                    } else {
+                                        v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
+                                    }
                                 }
                                 "2" -> {
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
@@ -428,6 +447,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
                                     v.setTextViewText(R.id.tv_live_inning, "최종")
                                     v.setTextViewText(R.id.tv_game_time,   "경기종료")
+                                    v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
                                 "3" -> {
                                     // 우천취소: 점수 숨기고 "경기취소" 표시
@@ -436,11 +456,13 @@ class KboWidgetProvider : AppWidgetProvider() {
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                                     v.setTextViewText(R.id.tv_live_inning, "경기취소")
                                     v.setTextViewText(R.id.tv_game_time,   "경기취소")
+                                    v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
                                 else -> {
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
+                                    v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
                             }
                             appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
@@ -501,6 +523,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         v.setTextViewText(R.id.tv_score_home,  displayHomeScore)
         v.setTextViewText(R.id.tv_live_inning, "최종")
         v.setTextViewText(R.id.tv_game_time,   "경기종료")
+        v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
         appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
     }
 

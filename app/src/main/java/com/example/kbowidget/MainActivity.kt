@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutMainCard: LinearLayout
     private lateinit var ivScoreAwayLogo: ImageView
     private lateinit var ivScoreHomeLogo: ImageView
+    private lateinit var ivSituation: ImageView
     private lateinit var tvScoreAwayName: TextView
     private lateinit var tvScoreHomeName: TextView
     private lateinit var tvScoreAwayScore: TextView
@@ -148,6 +149,7 @@ class MainActivity : AppCompatActivity() {
         layoutMainCard         = findViewById(R.id.layout_main_card)
         ivScoreAwayLogo        = findViewById(R.id.iv_score_away_logo)
         ivScoreHomeLogo        = findViewById(R.id.iv_score_home_logo)
+        ivSituation            = findViewById(R.id.iv_situation)
         tvScoreAwayName        = findViewById(R.id.tv_score_away_name)
         tvScoreHomeName        = findViewById(R.id.tv_score_home_name)
         tvScoreAwayScore       = findViewById(R.id.tv_score_away_score)
@@ -351,6 +353,8 @@ class MainActivity : AppCompatActivity() {
     private fun restoreCachedUI() {
         if (cachedAway.isEmpty()) return
         layoutGameInfo.visibility = View.VISIBLE
+        // 상황(주자·카운트)은 캐시하지 않음 — 재진입 시 일단 숨기고, 라이브면 loadScores가 다시 그린다.
+        ivSituation.visibility = View.GONE
         tvGameDate.text       = cachedDate
         tvScoreAwayName.text  = cachedAway
         tvScoreHomeName.text  = cachedHome
@@ -568,6 +572,11 @@ class MainActivity : AppCompatActivity() {
                         val awayScore = s.optString("away_score", "")
                         val homeScore = s.optString("home_score", "")
                         val inning    = s.optString("inning", "")
+                        // 경기 상황(아웃·볼카운트·주자) — 서버가 라이브 경기에만 채움
+                        val sBalls    = s.optInt("balls", -1)
+                        val sStrikes  = s.optInt("strikes", 0)
+                        val sOuts     = s.optInt("outs", 0)
+                        val sBases    = s.optJSONArray("bases")
                         cachedAwayScore = awayScore
                         cachedHomeScore = homeScore
                         cachedInning    = inning
@@ -597,6 +606,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         runOnUiThread {
                             updateScoreCard(awayScore, homeScore, inning, status)
+                            renderSituationView(status, sBalls, sStrikes, sOuts, sBases)
                             if (status == "2") {
                                 layoutFullRanking.visibility = View.VISIBLE
                                 if (cachedRankingList.isNotEmpty()) {
@@ -613,6 +623,22 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
+    }
+
+    // 경기 상황(주자 다이아몬드 + B·S·O) — status=1이고 서버가 필드를 줄 때만 표시.
+    // 비트맵은 SituationDrawer로 그려 큰 위젯과 룩을 일치시킨다.
+    private fun renderSituationView(status: String, balls: Int, strikes: Int, outs: Int, bases: JSONArray?) {
+        if (status == "1" && bases != null && balls >= 0) {
+            val arr = booleanArrayOf(
+                bases.optBoolean(0, false),
+                bases.optBoolean(1, false),
+                bases.optBoolean(2, false)
+            )
+            ivSituation.setImageBitmap(SituationDrawer.makeBitmap(arr, balls, strikes, outs))
+            ivSituation.visibility = View.VISIBLE
+        } else {
+            ivSituation.visibility = View.GONE
+        }
     }
 
     private fun restorePersistedScore(

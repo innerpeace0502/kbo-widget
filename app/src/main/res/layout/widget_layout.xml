@@ -161,6 +161,19 @@
             android:visibility="gone"/>
     </LinearLayout>
 
+    <!-- 경기 상황: 주자 다이아몬드 + B·S·O (SituationDrawer 비트맵, status=1에만 VISIBLE) -->
+    <ImageView
+        android:id="@+id/iv_situation"
+        android:layout_width="190dp"
+        android:layout_height="46dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_situation"
+        android:padding="5dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="경기 상황"
+        android:visibility="gone"/>
+
     <TextView
         android:id="@+id/tv_channel"
         android:layout_width="match_parent"
