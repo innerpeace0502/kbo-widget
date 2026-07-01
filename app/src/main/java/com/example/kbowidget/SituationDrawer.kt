@@ -42,15 +42,17 @@ object SituationDrawer {
         drawInning(c, p, inning, 64f, 72f)
 
         // ── 다이아몬드 (가운데) — 2루 위, 1루 오른쪽, 3루 왼쪽 ──
-        val cx = 200f; val cy = 72f; val r = 24f
-        drawBase(c, p, cx, cy - 34f, r, bases.getOrElse(1) { false })  // 2루(top)
-        drawBase(c, p, cx + 34f, cy, r, bases.getOrElse(0) { false })  // 1루(right)
-        drawBase(c, p, cx - 34f, cy, r, bases.getOrElse(2) { false })  // 3루(left)
-        // 홈플레이트 마커(작은 회색 오각형)
+        // ⚠️ 베이스 간격(off)이 반지름(r)보다 충분히 커야 서로 안 겹친다.
+        // (이전 r=24/off=34는 겹쳐서 다이아몬드가 덩어리로 뭉쳐 보였음)
+        val cx = 200f; val cy = 72f; val r = 19f; val off = 44f
+        drawBase(c, p, cx, cy - off, r, bases.getOrElse(1) { false })  // 2루(top)
+        drawBase(c, p, cx + off, cy, r, bases.getOrElse(0) { false })  // 1루(right)
+        drawBase(c, p, cx - off, cy, r, bases.getOrElse(2) { false })  // 3루(left)
+        // 홈플레이트 마커(작은 회색 오각형) — 다이아몬드 아래 꼭짓점
         p.style = Paint.Style.FILL; p.color = HOME_GRAY
         val hp = Path().apply {
-            moveTo(cx, cy + 26f); lineTo(cx + 9f, cy + 35f); lineTo(cx + 6f, cy + 46f)
-            lineTo(cx - 6f, cy + 46f); lineTo(cx - 9f, cy + 35f); close()
+            moveTo(cx, cy + off - 8f); lineTo(cx + 9f, cy + off - 1f); lineTo(cx + 6f, cy + off + 8f)
+            lineTo(cx - 6f, cy + off + 8f); lineTo(cx - 9f, cy + off - 1f); close()
         }
         c.drawPath(hp, p)
 
