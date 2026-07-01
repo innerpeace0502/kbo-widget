@@ -305,20 +305,22 @@ class KboWidgetProvider : AppWidgetProvider() {
                             val vc = RemoteViews(context.packageName, R.layout.widget_layout)
                             vc.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
                             vc.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
-                            vc.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                             vc.setTextViewText(R.id.tv_score_away, aScore)
                             vc.setTextViewText(R.id.tv_score_home, hScore)
                             if (useStatus == "2") {
+                                vc.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
+                                vc.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
+                                vc.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                                 vc.setTextViewText(R.id.tv_live_inning, "최종")
                                 vc.setTextViewText(R.id.tv_game_time,   "경기종료")
+                                vc.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
                             } else {
-                                // 진행중 — inning은 선택된 쪽 prefs에서
-                                val inning = when {
-                                    regLive -> prefs.getString("reg_inning","") ?: ""
-                                    appLive -> prefs.getString("app_inning","") ?: ""
-                                    else -> ""
-                                }
-                                vc.setTextViewText(R.id.tv_live_inning, inning)
+                                // 진행중 — 가운데 "● LIVE"만, 경기장명·이닝 숨김 (이닝은 곧 fetchLiveScore가 상황 바로 렌더)
+                                vc.setTextViewText(R.id.tv_game_time, "● LIVE")
+                                vc.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FF6B6B"))
+                                vc.setViewVisibility(R.id.tv_center_sep,  android.view.View.GONE)
+                                vc.setViewVisibility(R.id.tv_stadium,     android.view.View.GONE)
+                                vc.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
                             }
                             appWidgetManager.partiallyUpdateAppWidget(appWidgetId, vc)
                         }
@@ -418,14 +420,18 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                             when (status) {
                                 "1" -> {
+                                    // 라이브 — 가운데 텍스트 행은 "● LIVE"만, 경기장명·이닝 숨김.
+                                    // 이닝은 상황 바(비트맵) 안으로 이동. 점수는 로고 옆에 유지, 채널 행도 유지.
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
-                                    v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                                     v.setTextViewText(R.id.tv_score_away,  awayScore)
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
-                                    v.setTextViewText(R.id.tv_live_inning, inning)
-                                    v.setTextViewText(R.id.tv_game_time,   "$awayScore : $homeScore")
-                                    // 주자 다이아몬드 + B·S·O (필드 있을 때만)
+                                    v.setTextViewText(R.id.tv_game_time,   "● LIVE")
+                                    v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FF6B6B"))
+                                    v.setViewVisibility(R.id.tv_center_sep,  android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_stadium,     android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
+                                    // 이닝 + 주자 다이아몬드 + B·S·O (필드 있을 때만)
                                     if (sBases != null && sBalls >= 0) {
                                         val bases = booleanArrayOf(
                                             sBases.optBoolean(0, false),
@@ -433,7 +439,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                                             sBases.optBoolean(2, false)
                                         )
                                         v.setImageViewBitmap(R.id.iv_situation,
-                                            SituationDrawer.makeBitmap(bases, sBalls, sStrikes, sOuts))
+                                            SituationDrawer.makeBitmap(inning, bases, sBalls, sStrikes, sOuts))
                                         v.setViewVisibility(R.id.iv_situation, android.view.View.VISIBLE)
                                     } else {
                                         v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
@@ -442,25 +448,33 @@ class KboWidgetProvider : AppWidgetProvider() {
                                 "2" -> {
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
+                                    v.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
+                                    v.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                                     v.setTextViewText(R.id.tv_score_away,  awayScore)
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
                                     v.setTextViewText(R.id.tv_live_inning, "최종")
                                     v.setTextViewText(R.id.tv_game_time,   "경기종료")
+                                    v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
                                     v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
                                 "3" -> {
                                     // 우천취소: 점수 숨기고 "경기취소" 표시
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
+                                    v.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
                                     v.setTextViewText(R.id.tv_live_inning, "경기취소")
                                     v.setTextViewText(R.id.tv_game_time,   "경기취소")
+                                    v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
                                     v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
                                 else -> {
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.GONE)
+                                    v.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
+                                    v.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
                                     v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                 }
@@ -518,11 +532,14 @@ class KboWidgetProvider : AppWidgetProvider() {
         val v = RemoteViews(context.packageName, R.layout.widget_layout)
         v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
         v.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
+        v.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
+        v.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
         v.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
         v.setTextViewText(R.id.tv_score_away,  displayScore)
         v.setTextViewText(R.id.tv_score_home,  displayHomeScore)
         v.setTextViewText(R.id.tv_live_inning, "최종")
         v.setTextViewText(R.id.tv_game_time,   "경기종료")
+        v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
         v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
         appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
     }

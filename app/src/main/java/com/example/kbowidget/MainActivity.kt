@@ -44,7 +44,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvScoreInning: TextView
     private lateinit var tvGameTimeInfo: TextView
     private lateinit var tvStadiumInfo: TextView
-    private lateinit var tvChannelInfo: TextView
+    private lateinit var tvChannelName: TextView
+    private lateinit var tvChannelNum: TextView
     private lateinit var layoutAwayPitcher: LinearLayout
     private lateinit var layoutHomePitcher: LinearLayout
     private lateinit var tvAwayRankLabel: TextView
@@ -157,7 +158,8 @@ class MainActivity : AppCompatActivity() {
         tvScoreInning          = findViewById(R.id.tv_score_inning)
         tvGameTimeInfo         = findViewById(R.id.tv_game_time_info)
         tvStadiumInfo          = findViewById(R.id.tv_stadium_info)
-        tvChannelInfo          = findViewById(R.id.tv_channel_info)
+        tvChannelName          = findViewById(R.id.tv_channel_name)
+        tvChannelNum           = findViewById(R.id.tv_channel_num)
         layoutAwayPitcher      = findViewById(R.id.layout_away_pitcher)
         layoutHomePitcher      = findViewById(R.id.layout_home_pitcher)
         tvAwayRankLabel        = findViewById(R.id.tv_away_rank_label)
@@ -374,7 +376,7 @@ class MainActivity : AppCompatActivity() {
             if (iptvCh.isNotEmpty() && cachedBroadcast != "tving") {
                 fetchChannelNumber(iptvCh, cachedBroadcast, chName)
             } else {
-                tvChannelInfo.text = chName
+                setChannelDisplay(chName, "")
             }
         }
         applyTeamChip(tvAwayRankLabel, cachedAway)
@@ -526,7 +528,7 @@ class MainActivity : AppCompatActivity() {
                     if (iptv.isNotEmpty() && broadcast.isNotEmpty() && broadcast != "tving") {
                         fetchChannelNumber(iptv, broadcast, chName)
                     } else {
-                        tvChannelInfo.text = chName
+                        setChannelDisplay(chName, "")
                     }
 
                     val teamParam2 = if (team == "전체") away else team
@@ -606,7 +608,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         runOnUiThread {
                             updateScoreCard(awayScore, homeScore, inning, status)
-                            renderSituationView(status, sBalls, sStrikes, sOuts, sBases)
+                            renderSituationView(status, inning, sBalls, sStrikes, sOuts, sBases)
                             if (status == "2") {
                                 layoutFullRanking.visibility = View.VISIBLE
                                 if (cachedRankingList.isNotEmpty()) {
@@ -627,14 +629,14 @@ class MainActivity : AppCompatActivity() {
 
     // 경기 상황(주자 다이아몬드 + B·S·O) — status=1이고 서버가 필드를 줄 때만 표시.
     // 비트맵은 SituationDrawer로 그려 큰 위젯과 룩을 일치시킨다.
-    private fun renderSituationView(status: String, balls: Int, strikes: Int, outs: Int, bases: JSONArray?) {
+    private fun renderSituationView(status: String, inning: String, balls: Int, strikes: Int, outs: Int, bases: JSONArray?) {
         if (status == "1" && bases != null && balls >= 0) {
             val arr = booleanArrayOf(
                 bases.optBoolean(0, false),
                 bases.optBoolean(1, false),
                 bases.optBoolean(2, false)
             )
-            ivSituation.setImageBitmap(SituationDrawer.makeBitmap(arr, balls, strikes, outs))
+            ivSituation.setImageBitmap(SituationDrawer.makeBitmap(inning, arr, balls, strikes, outs))
             ivSituation.visibility = View.VISIBLE
         } else {
             ivSituation.visibility = View.GONE
@@ -680,20 +682,22 @@ class MainActivity : AppCompatActivity() {
         awayScore: String, homeScore: String,
         inning: String, status: String
     ) {
+        tvStadiumInfo.visibility = View.VISIBLE  // 라이브 외 상태에선 경기장명 노출 (아래 "1"에서만 숨김)
         when (status) {
             "1" -> {
-                // 경기 중
+                // 경기 중 — 가운데는 LIVE 라벨 + 채널만. 경기장명·시작시간 숨김, 이닝은 상황 바(비트맵)로 이동.
                 tvScoreAwayScore.text = awayScore
                 tvScoreHomeScore.text = homeScore
                 tvScoreAwayScore.visibility = View.VISIBLE
                 tvScoreHomeScore.visibility = View.VISIBLE
-                // 이닝 배지: 빨간 배경
-                tvScoreInning.text = inning
+                // 가운데 라벨: ● LIVE (빨강, 배경 없음)
+                tvScoreInning.text = "● LIVE"
                 tvScoreInning.setTextColor(Color.parseColor("#FF6B6B"))
-                applyBadgeBackground(tvScoreInning, "#261010", "#4D1515")
+                tvScoreInning.setBackgroundColor(Color.TRANSPARENT)
                 tvScoreInning.textSize = 11f
                 tvScoreInning.visibility = View.VISIBLE
-                tvGameTimeInfo.visibility = View.VISIBLE
+                tvGameTimeInfo.visibility = View.GONE
+                tvStadiumInfo.visibility = View.GONE
                 // 상단 상태 배지
                 tvStatusBadge.text = "● $inning"
                 tvStatusBadge.setTextColor(Color.parseColor("#FF6B6B"))
@@ -803,12 +807,21 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 try {
                 val ch = JSONObject(response.body?.string() ?: "{}").optString("채널번호", "")
-                runOnUiThread {
-                    tvChannelInfo.text = if (ch.isNotEmpty()) "$chName ${ch}ch" else chName
-                }
+                runOnUiThread { setChannelDisplay(chName, ch) }
                 } catch (e: Exception) { println("[KBO위젯] 응답 처리 오류: ${e.message}") }
             }
         })
+    }
+
+    /** 채널명(금색) + 채널번호 뱃지(금색 배경). 슬림 위젯의 채널 표시 형태와 통일. */
+    private fun setChannelDisplay(name: String, num: String) {
+        tvChannelName.text = name
+        if (num.isNotEmpty()) {
+            tvChannelNum.text = num
+            tvChannelNum.visibility = View.VISIBLE
+        } else {
+            tvChannelNum.visibility = View.GONE
+        }
     }
 
     private fun loadPitcherInfo(teamParam: String) {
