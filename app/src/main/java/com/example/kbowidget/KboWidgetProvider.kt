@@ -216,6 +216,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                     v.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
                     if (games.length() == 0) {
+                        v.setViewVisibility(R.id.layout_clock, android.view.View.VISIBLE)
                         v.setTextViewText(R.id.tv_away,      "오늘")
                         v.setTextViewText(R.id.tv_home,      "경기없음")
                         v.setTextViewText(R.id.tv_game_time, "")
@@ -308,6 +309,7 @@ class KboWidgetProvider : AppWidgetProvider() {
                             vc.setTextViewText(R.id.tv_score_away, aScore)
                             vc.setTextViewText(R.id.tv_score_home, hScore)
                             if (useStatus == "2") {
+                                vc.setViewVisibility(R.id.layout_clock,   android.view.View.VISIBLE)
                                 vc.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
                                 vc.setViewVisibility(R.id.tv_stadium,     android.view.View.VISIBLE)
                                 vc.setViewVisibility(R.id.tv_live_inning, android.view.View.VISIBLE)
@@ -315,7 +317,9 @@ class KboWidgetProvider : AppWidgetProvider() {
                                 vc.setTextViewText(R.id.tv_game_time,   "경기종료")
                                 vc.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
                             } else {
-                                // 진행중 — 가운데 "● LIVE"만, 경기장명·이닝 숨김 (이닝은 곧 fetchLiveScore가 상황 바로 렌더)
+                                // 진행중 — 시계 행 숨김(라이브 여백 확보), 가운데 "● LIVE"만,
+                                // 경기장명·이닝 숨김 (이닝은 곧 fetchLiveScore가 상황 바로 렌더)
+                                vc.setViewVisibility(R.id.layout_clock, android.view.View.GONE)
                                 vc.setTextViewText(R.id.tv_game_time, "● LIVE")
                                 vc.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FF6B6B"))
                                 vc.setViewVisibility(R.id.tv_center_sep,  android.view.View.GONE)
@@ -418,30 +422,43 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                             val v = RemoteViews(context.packageName, R.layout.widget_layout)
 
+                            // 기본: 시계 행·info행 첫칸(game_time)·별도 채널행 노출.
+                            // 라이브(1)에서만 시계를 숨겨 여백 확보 + 상황은 한 줄 바로 대체.
+                            v.setViewVisibility(R.id.layout_clock, android.view.View.VISIBLE)
+                            v.setViewVisibility(R.id.tv_game_time, android.view.View.VISIBLE)
+                            v.setViewVisibility(R.id.tv_channel,   android.view.View.VISIBLE)
+
                             when (status) {
                                 "1" -> {
-                                    // 라이브 — 가운데 텍스트 행은 "● LIVE"만, 경기장명·이닝 숨김.
-                                    // 이닝은 상황 바(비트맵) 안으로 이동. 점수는 로고 옆에 유지, 채널 행도 유지.
+                                    // 라이브 — 시계 행 숨김(시합 중에는 시간 미표시, 배치 여유 확보).
+                                    // 상황은 한 줄 바(이닝·LIVE/채널·베이스·B·S·O) 비트맵 한 장으로 표시,
+                                    // info행(시작시간·경기장명·이닝)과 별도 채널행은 숨김(전부 바 안에 들어감).
+                                    v.setViewVisibility(R.id.layout_clock,   android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
                                     v.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
                                     v.setTextViewText(R.id.tv_score_away,  awayScore)
                                     v.setTextViewText(R.id.tv_score_home,  homeScore)
-                                    v.setTextViewText(R.id.tv_game_time,   "● LIVE")
-                                    v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FF6B6B"))
                                     v.setViewVisibility(R.id.tv_center_sep,  android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_stadium,     android.view.View.GONE)
                                     v.setViewVisibility(R.id.tv_live_inning, android.view.View.GONE)
-                                    // 이닝 + 주자 다이아몬드 + B·S·O (필드 있을 때만)
                                     if (sBases != null && sBalls >= 0) {
                                         val bases = booleanArrayOf(
                                             sBases.optBoolean(0, false),
                                             sBases.optBoolean(1, false),
                                             sBases.optBoolean(2, false)
                                         )
+                                        val chN   = prefs.getString("live_ch_name", "") ?: ""
+                                        val chNum = prefs.getString("live_ch_num", "") ?: ""
                                         v.setImageViewBitmap(R.id.iv_situation,
-                                            SituationDrawer.makeBitmap(inning, bases, sBalls, sStrikes, sOuts))
+                                            SituationDrawer.makeWidgetBar(inning, chN, chNum, bases, sBalls, sStrikes, sOuts))
                                         v.setViewVisibility(R.id.iv_situation, android.view.View.VISIBLE)
+                                        // 바가 LIVE·채널·이닝을 모두 담으므로 info행 첫칸·별도 채널행 숨김
+                                        v.setViewVisibility(R.id.tv_game_time, android.view.View.GONE)
+                                        v.setViewVisibility(R.id.tv_channel,   android.view.View.GONE)
                                     } else {
+                                        // 상황 필드 없으면 최소한 "● LIVE"라도 info행에 (채널행은 그대로 유지)
+                                        v.setTextViewText(R.id.tv_game_time, "● LIVE")
+                                        v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FF6B6B"))
                                         v.setViewVisibility(R.id.iv_situation, android.view.View.GONE)
                                     }
                                 }
@@ -530,6 +547,7 @@ class KboWidgetProvider : AppWidgetProvider() {
         }
 
         val v = RemoteViews(context.packageName, R.layout.widget_layout)
+        v.setViewVisibility(R.id.layout_clock,   android.view.View.VISIBLE)
         v.setViewVisibility(R.id.tv_score_away,  android.view.View.VISIBLE)
         v.setViewVisibility(R.id.tv_score_home,  android.view.View.VISIBLE)
         v.setViewVisibility(R.id.tv_center_sep,  android.view.View.VISIBLE)
@@ -569,8 +587,12 @@ class KboWidgetProvider : AppWidgetProvider() {
             override fun onFailure(call: Call, e: IOException) {}
             override fun onResponse(call: Call, response: Response) {
                 val ch = try { JSONObject(response.body?.string() ?: "{}").optString("채널번호", "") } catch (_: Exception) { "" }
+                val chNum = if (ch.isNotEmpty() && broadcaster != "tving") ch else ""
+                // 라이브 한 줄 바(makeWidgetBar)에서 쓸 채널명/번호 캐시
+                context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE).edit()
+                    .putString("live_ch_name", name).putString("live_ch_num", chNum).apply()
                 val v  = RemoteViews(context.packageName, R.layout.widget_layout)
-                val chText = if (ch.isNotEmpty() && broadcaster != "tving") "$name  ${ch}ch" else name
+                val chText = if (chNum.isNotEmpty()) "$name  ${chNum}ch" else name
                 v.setTextViewText(R.id.tv_channel, chText)
                 appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)
             }
@@ -589,6 +611,9 @@ class KboWidgetProvider : AppWidgetProvider() {
         fun done() {
             count++
             if (count == 2) {
+                // 한 줄 바용 캐시 (대표 채널 SPOTV만)
+                context.getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE).edit()
+                    .putString("live_ch_name", "SPOTV").putString("live_ch_num", ch1).apply()
                 val v = RemoteViews(context.packageName, R.layout.widget_layout)
                 v.setTextViewText(R.id.tv_channel, "SPOTV ${ch1}ch  /  SPOTV2 ${ch2}ch")
                 appWidgetManager.partiallyUpdateAppWidget(appWidgetId, v)

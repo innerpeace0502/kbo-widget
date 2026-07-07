@@ -32,6 +32,8 @@ object SituationDrawer {
     private val ON_O       = Color.parseColor("#FF6B6B")
     private val INN_TOP    = Color.parseColor("#FF6B6B")  // 초(▲)
     private val INN_BOT    = Color.parseColor("#4A9EFF")  // 말(▼)
+    private val BADGE_TXT  = Color.parseColor("#1A1A2E")  // 채널번호 뱃지 글자(금색 배경 위)
+    private val DIV        = Color.parseColor("#2E2E44")  // 한 줄 바 구획 세로 구분선
 
     fun makeBitmap(inning: String, bases: BooleanArray, balls: Int, strikes: Int, outs: Int): Bitmap {
         val bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
@@ -62,6 +64,85 @@ object SituationDrawer {
         drawCountRow(c, p, "S", labelX, 76f,  dotX0, gap, dotR, 2, strikes, ON_S)
         drawCountRow(c, p, "O", labelX, 110f, dotX0, gap, dotR, 2, outs,    ON_O)
         return bmp
+    }
+
+    /**
+     * 큰 위젯 전용 한 줄 상황 바: [이닝] | [●LIVE·채널명·번호] | [베이스] | [B·S·O].
+     * 상황 카드 + LIVE 행 + 채널 행을 한 줄로 합쳐 위젯 세로 높이를 크게 줄인다(잘림 방지).
+     * 채널명/번호는 fetchChannel이 prefs에 캐시한 값을 전달받는다(없으면 LIVE만 표시).
+     * 캔버스 700x130(≈5.4:1) — 위젯 iv_situation도 같은 비율의 와이드 바.
+     */
+    fun makeWidgetBar(inning: String, chName: String, chNum: String,
+                      bases: BooleanArray, balls: Int, strikes: Int, outs: Int): Bitmap {
+        val w = 700; val h = 130
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.typeface = Typeface.DEFAULT_BOLD
+        val cy = 65f
+
+        // 1) 이닝 ▼N (초=▲빨강 / 말=▼파랑)
+        val m = Regex("(\\d+)").find(inning)
+        if (m != null) {
+            val isBot = inning.contains("말")
+            val icol = if (isBot) INN_BOT else INN_TOP
+            val tcx = 40f
+            p.style = Paint.Style.FILL; p.color = icol
+            val tri = Path().apply {
+                if (isBot) { moveTo(tcx - 13f, cy - 9f); lineTo(tcx + 13f, cy - 9f); lineTo(tcx, cy + 13f) }
+                else { moveTo(tcx - 13f, cy + 9f); lineTo(tcx + 13f, cy + 9f); lineTo(tcx, cy - 13f) }
+                close()
+            }
+            c.drawPath(tri, p)
+            p.textSize = 62f; p.textAlign = Paint.Align.LEFT
+            c.drawText(m.groupValues[1], tcx + 16f, cy + 22f, p)
+        }
+        vDiv(c, p, 150f, h)
+
+        // 2) ● LIVE / 채널명 [번호뱃지]
+        p.style = Paint.Style.FILL; p.color = ON_O
+        c.drawCircle(181f, 42f, 6f, p)
+        p.textSize = 24f; p.textAlign = Paint.Align.LEFT
+        c.drawText("LIVE", 193f, 50f, p)
+        if (chName.isNotEmpty()) {
+            p.color = GOLD; p.textSize = 28f
+            c.drawText(chName, 175f, 100f, p)
+            if (chNum.isNotEmpty()) {
+                val sw = p.measureText(chName)
+                val bx = 175f + sw + 8f
+                p.textSize = 22f
+                val numW = p.measureText(chNum) + 16f
+                p.style = Paint.Style.FILL; p.color = GOLD
+                c.drawRoundRect(bx, 80f, bx + numW, 106f, 5f, 5f, p)
+                p.color = BADGE_TXT
+                c.drawText(chNum, bx + 8f, 101f, p)
+            }
+        }
+        vDiv(c, p, 375f, h)
+
+        // 3) 베이스 다이아몬드
+        val bcx = 445f; val r = 20f; val off = 42f
+        drawBase(c, p, bcx, cy - off, r, bases.getOrElse(1) { false })  // 2루(top)
+        drawBase(c, p, bcx + off, cy, r, bases.getOrElse(0) { false })  // 1루(right)
+        drawBase(c, p, bcx - off, cy, r, bases.getOrElse(2) { false })  // 3루(left)
+        p.style = Paint.Style.FILL; p.color = HOME_GRAY
+        val hp = Path().apply {
+            moveTo(bcx, cy + off - 7f); lineTo(bcx + 8f, cy + off); lineTo(bcx + 6f, cy + off + 9f)
+            lineTo(bcx - 6f, cy + off + 9f); lineTo(bcx - 8f, cy + off); close()
+        }
+        c.drawPath(hp, p)
+        vDiv(c, p, 540f, h)
+
+        // 4) B/S/O
+        drawCountRow(c, p, "B", 565f, 35f, 605f, 34f, 11f, 3, balls,   ON_B)
+        drawCountRow(c, p, "S", 565f, 65f, 605f, 34f, 11f, 2, strikes, ON_S)
+        drawCountRow(c, p, "O", 565f, 95f, 605f, 34f, 11f, 2, outs,    ON_O)
+        return bmp
+    }
+
+    private fun vDiv(c: Canvas, p: Paint, x: Float, h: Int) {
+        p.style = Paint.Style.STROKE; p.strokeWidth = 2f; p.color = DIV
+        c.drawLine(x, 25f, x, h - 25f, p)
     }
 
     /** 이닝 문자열("5회초"/"5회말") → 화살표+숫자. 초=▲빨강 / 말=▼파랑 (숫자도 화살표 색). */
