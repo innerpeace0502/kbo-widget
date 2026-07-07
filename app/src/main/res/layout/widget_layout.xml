@@ -173,16 +173,16 @@
         android:gravity="center"
         android:layout_marginBottom="2dp"/>
 
-    <!-- 경기 상황: 이닝 + 주자 다이아몬드 + B·S·O (SituationDrawer 비트맵, status=1에만 VISIBLE)
-         위젯 칸에 맞게 높이 축소 + 비트맵 비율(≈3.07:1) 유지해 카드를 꽉 채움 -->
+    <!-- 경기 상황: 한 줄 바 [이닝·LIVE/채널·베이스·B·S·O] (SituationDrawer.makeWidgetBar, status=1에만 VISIBLE)
+         상황카드+LIVE행+채널행을 한 줄로 합쳐 세로 높이를 크게 줄임(잘림 방지). 비트맵 700x130(≈5.4:1). -->
     <ImageView
         android:id="@+id/iv_situation"
-        android:layout_width="190dp"
-        android:layout_height="62dp"
+        android:layout_width="330dp"
+        android:layout_height="66dp"
         android:layout_gravity="center"
         android:layout_marginBottom="2dp"
         android:background="@drawable/bg_situation"
-        android:padding="6dp"
+        android:padding="4dp"
         android:scaleType="fitCenter"
         android:contentDescription="경기 상황"
         android:visibility="gone"/>
