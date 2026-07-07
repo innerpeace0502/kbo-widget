@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- foreground는 커스텀 KBO 아이콘 webp(@mipmap) — ic_launcher.xml과 동일 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <background android:drawable="@android:color/white" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
     <monochrome android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
