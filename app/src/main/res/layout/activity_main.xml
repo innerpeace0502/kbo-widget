@@ -407,6 +407,26 @@
                     android:contentDescription="경기 상황"
                     android:visibility="gone"/>
 
+                <!-- 이닝별 점수표(라인스코어) — 앱 전용, 라이브에만 표시.
+                     서버 /api/scores 응답에 line_score 필드가 있을 때만 채워진다 (없으면 숨김) -->
+                <HorizontalScrollView
+                    android:id="@+id/hs_line_score"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_situation"
+                    android:padding="8dp"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/layout_line_score"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
+                </HorizontalScrollView>
+
                 <!-- 구분선 -->
                 <View
                     android:layout_width="match_parent"

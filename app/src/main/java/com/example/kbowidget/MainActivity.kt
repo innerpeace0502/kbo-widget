@@ -37,6 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivScoreAwayLogo: ImageView
     private lateinit var ivScoreHomeLogo: ImageView
     private lateinit var ivSituation: ImageView
+    private lateinit var hsLineScore: HorizontalScrollView
+    private lateinit var layoutLineScore: LinearLayout
     private lateinit var tvScoreAwayName: TextView
     private lateinit var tvScoreHomeName: TextView
     private lateinit var tvScoreAwayScore: TextView
@@ -151,6 +153,8 @@ class MainActivity : AppCompatActivity() {
         ivScoreAwayLogo        = findViewById(R.id.iv_score_away_logo)
         ivScoreHomeLogo        = findViewById(R.id.iv_score_home_logo)
         ivSituation            = findViewById(R.id.iv_situation)
+        hsLineScore            = findViewById(R.id.hs_line_score)
+        layoutLineScore        = findViewById(R.id.layout_line_score)
         tvScoreAwayName        = findViewById(R.id.tv_score_away_name)
         tvScoreHomeName        = findViewById(R.id.tv_score_home_name)
         tvScoreAwayScore       = findViewById(R.id.tv_score_away_score)
@@ -355,8 +359,9 @@ class MainActivity : AppCompatActivity() {
     private fun restoreCachedUI() {
         if (cachedAway.isEmpty()) return
         layoutGameInfo.visibility = View.VISIBLE
-        // 상황(주자·카운트)은 캐시하지 않음 — 재진입 시 일단 숨기고, 라이브면 loadScores가 다시 그린다.
+        // 상황(주자·카운트)·라인스코어는 캐시하지 않음 — 재진입 시 일단 숨기고, 라이브면 loadScores가 다시 그린다.
         ivSituation.visibility = View.GONE
+        hsLineScore.visibility = View.GONE
         tvGameDate.text       = cachedDate
         tvScoreAwayName.text  = cachedAway
         tvScoreHomeName.text  = cachedHome
@@ -579,6 +584,8 @@ class MainActivity : AppCompatActivity() {
                         val sStrikes  = s.optInt("strikes", 0)
                         val sOuts     = s.optInt("outs", 0)
                         val sBases    = s.optJSONArray("bases")
+                        // 이닝별 점수(라인스코어) — 서버가 주면 표시, 없으면 숨김 (앱 전용)
+                        val sLineScore = s.optJSONObject("line_score")
                         cachedAwayScore = awayScore
                         cachedHomeScore = homeScore
                         cachedInning    = inning
@@ -609,6 +616,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             updateScoreCard(awayScore, homeScore, inning, status)
                             renderSituationView(status, inning, sBalls, sStrikes, sOuts, sBases)
+                            renderLineScore(status, inning, sAway, sHome, sLineScore)
                             if (status == "2") {
                                 layoutFullRanking.visibility = View.VISIBLE
                                 if (cachedRankingList.isNotEmpty()) {
@@ -641,6 +649,66 @@ class MainActivity : AppCompatActivity() {
         } else {
             ivSituation.visibility = View.GONE
         }
+    }
+
+    // 이닝별 점수표(라인스코어) — 앱 전용, 라이브(status=1)에만 표시. 위젯에는 넣지 않는다.
+    // 서버 /api/scores 의 각 score 객체에 아래 선택 필드가 있을 때만 그린다:
+    //   "line_score": { "away": [이닝별 득점...], "home": [...],
+    //                   "away_rhe": [R,H,E], "home_rhe": [R,H,E] }  ← rhe는 선택
+    // 필드가 없으면 조용히 숨겨 현재 서버 버전과도 호환. 진행 전 이닝은 "-"로 채운다.
+    private fun renderLineScore(status: String, inning: String, away: String, home: String, ls: JSONObject?) {
+        val awayArr = ls?.optJSONArray("away")
+        val homeArr = ls?.optJSONArray("home")
+        if (status != "1" || awayArr == null || homeArr == null) {
+            hsLineScore.visibility = View.GONE
+            return
+        }
+
+        val innings   = maxOf(9, awayArr.length(), homeArr.length())
+        val curInning = Regex("(\\d+)").find(inning)?.value?.toIntOrNull() ?: 0
+        val awayRhe   = ls.optJSONArray("away_rhe")
+        val homeRhe   = ls.optJSONArray("home_rhe")
+        val hasRhe    = awayRhe != null && homeRhe != null
+
+        val colorHeader = Color.parseColor("#8A9FBF")
+        val colorGold   = Color.parseColor("#FFD700")
+
+        fun cell(text: String, width: Int, color: Int, bold: Boolean) = TextView(this).apply {
+            this.text = text
+            setTextColor(color)
+            textSize = 10f
+            gravity = Gravity.CENTER
+            if (bold) setTypeface(null, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(width.dp, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+
+        fun teamRow(name: String, arr: JSONArray, rhe: JSONArray?) = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(cell(name, 36, Color.WHITE, true))
+            for (i in 0 until innings) {
+                val v = arr.optString(i, "").ifEmpty { "-" }
+                val cur = (i + 1 == curInning)
+                addView(cell(v, 20, if (cur) colorGold else Color.WHITE, cur))
+            }
+            rhe?.let { for (j in 0 until 3) addView(cell(it.optString(j, "-"), 22, colorHeader, true)) }
+        }
+
+        layoutLineScore.removeAllViews()
+        layoutLineScore.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(cell("", 36, colorHeader, false))
+            for (i in 1..innings) {
+                val cur = (i == curInning)
+                addView(cell("$i", 20, if (cur) colorGold else colorHeader, cur))
+            }
+            if (hasRhe) listOf("R", "H", "E").forEach { addView(cell(it, 22, colorHeader, true)) }
+        })
+        layoutLineScore.addView(teamRow(away, awayArr, awayRhe.takeIf { hasRhe }))
+        layoutLineScore.addView(teamRow(home, homeArr, homeRhe.takeIf { hasRhe }))
+
+        hsLineScore.visibility = View.VISIBLE
+        // 연장 등으로 표가 화면보다 넓으면 진행 중 이닝이 보이게 오른쪽 끝으로 스크롤
+        hsLineScore.post { hsLineScore.fullScroll(View.FOCUS_RIGHT) }
     }
 
     private fun restorePersistedScore(
