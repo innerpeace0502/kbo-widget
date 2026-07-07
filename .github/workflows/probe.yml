@@ -26,6 +26,24 @@ jobs:
           curl -sS --max-time 90 -w "\n[HTTP %{http_code}, %{time_total}s]\n" \
             "$B/api/debug/chrome" | head -c 6000
 
+      - name: 네이버 relay 구조 덤프
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+          NID="20260707LGSS02026"
+          R="https://api-gw.sports.naver.com/schedule/games/$NID/relay?inningNo=5"
+          echo "-- textRelayData 최상위 키 --"
+          curl -sS "$R" -H "User-Agent: $UA" | jq -r '.result.textRelayData | keys[]'
+          echo "-- 중계 텍스트 배열 후보 필드 샘플 --"
+          curl -sS "$R" -H "User-Agent: $UA" -o /tmp/relay.json
+          python3 - <<'EOF'
+          import json
+          d = json.load(open('/tmp/relay.json'))['result']['textRelayData']
+          for k, v in d.items():
+              if isinstance(v, list) and v and isinstance(v[0], dict):
+                  print(f"### {k} (len={len(v)}) 첫 항목 키: {sorted(v[0].keys())}")
+                  print(json.dumps(v[:4], ensure_ascii=False)[:2500])
+          EOF
+
       - name: 문자중계(relay) 데이터 소스 탐색
         run: |
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
