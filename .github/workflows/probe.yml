@@ -16,7 +16,7 @@ jobs:
       - name: Curl API endpoints
         run: |
           B=https://web-production-6aae76.up.railway.app
-          for ep in "/api/scores" "/api/relay" "/api/debug/scheduler" "/api/debug/scores"; do
+          for ep in "/api/scores" "/api/relay" "/api/ranking" "/api/gameinfo?team=LG" "/api/pitcher/today" "/api/debug/scheduler"; do
             echo "========== GET $ep =========="
             curl -sS --max-time 60 -w "\n[HTTP %{http_code}, %{time_total}s]\n" "$B$ep" | head -c 4000
             echo
