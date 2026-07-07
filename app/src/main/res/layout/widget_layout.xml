@@ -8,59 +8,33 @@
     android:padding="12dp"
     android:gravity="center_vertical">
 
-    <LinearLayout
+    <!-- 좌측상단 시계(HH:mm:ss) 제거 — 확보한 세로 공간으로 라이브 콘텐츠가
+         위젯 아웃라인에 닿지 않게 됨. 날짜만 우측 상단에 유지 (TextClock은 시스템 자동 갱신) -->
+    <TextClock
+        android:id="@+id/tv_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="4dp">
-
-        <!-- TextClock은 시스템이 자동 갱신 → TickService 의존성 제거 -->
-        <TextClock
-            android:id="@+id/tv_time_hm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format12Hour="HH:mm"
-            android:format24Hour="HH:mm"
-            android:textColor="#FFFFFF"
-            android:textSize="42sp"
-            android:textStyle="bold"/>
-
-        <TextClock
-            android:id="@+id/tv_time_sec"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format12Hour=":ss"
-            android:format24Hour=":ss"
-            android:textColor="#AAAAAA"
-            android:textSize="26sp"
-            android:layout_marginStart="2dp"
-            android:layout_marginBottom="2dp"/>
-
-        <TextClock
-            android:id="@+id/tv_date"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:format12Hour="yyyy.MM.dd EEE"
-            android:format24Hour="yyyy.MM.dd EEE"
-            android:textColor="#777777"
-            android:textSize="13sp"
-            android:gravity="end"/>
-    </LinearLayout>
+        android:format12Hour="yyyy.MM.dd EEE"
+        android:format24Hour="yyyy.MM.dd EEE"
+        android:textColor="#777777"
+        android:textSize="13sp"
+        android:gravity="end"
+        android:layout_marginBottom="2dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="4dp">
 
+        <!-- 로고 55→48dp, 팀명·점수 36→30sp — 5칸 최소폭(338dp)에서도
+             '두산 10 vs 9 삼성' 같은 최장 조합이 좌우 아웃라인에 닿지 않는 크기 -->
         <ImageView
             android:id="@+id/iv_logo_away"
-            android:layout_width="55dp"
-            android:layout_height="55dp"
-            android:layout_marginEnd="8dp"/>
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="7dp"/>
 
         <TextView
             android:id="@+id/tv_away"
@@ -68,7 +42,7 @@
             android:layout_height="wrap_content"
             android:text="KIA"
             android:textColor="#FFFFFF"
-            android:textSize="36sp"
+            android:textSize="30sp"
             android:textStyle="bold"/>
 
         <TextView
@@ -77,9 +51,9 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textColor="#FFD700"
-            android:textSize="36sp"
+            android:textSize="30sp"
             android:textStyle="bold"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="7dp"
             android:visibility="gone"/>
 
         <TextView
@@ -89,8 +63,8 @@
             android:text="vs"
             android:textColor="#555555"
             android:textSize="14sp"
-            android:layout_marginHorizontal="10dp"
-            android:paddingHorizontal="8dp"
+            android:layout_marginHorizontal="6dp"
+            android:paddingHorizontal="6dp"
             android:paddingVertical="3dp"/>
 
         <TextView
@@ -99,9 +73,9 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textColor="#FFD700"
-            android:textSize="36sp"
+            android:textSize="30sp"
             android:textStyle="bold"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="7dp"
             android:visibility="gone"/>
 
         <TextView
@@ -110,14 +84,14 @@
             android:layout_height="wrap_content"
             android:text="KT"
             android:textColor="#FFFFFF"
-            android:textSize="36sp"
+            android:textSize="30sp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/iv_logo_home"
-            android:layout_width="55dp"
-            android:layout_height="55dp"
-            android:layout_marginStart="8dp"/>
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="7dp"/>
     </LinearLayout>
 
     <LinearLayout
@@ -125,7 +99,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="3dp">
 
         <TextView
             android:id="@+id/tv_game_time"
@@ -174,13 +148,14 @@
         android:layout_marginBottom="2dp"/>
 
     <!-- 경기 상황: 이닝 + 주자 다이아몬드 + B·S·O (SituationDrawer 비트맵, status=1에만 VISIBLE)
-         위젯 칸에 맞게 높이 축소 + 비트맵 비율(≈3.07:1) 유지해 카드를 꽉 채움 -->
+         위젯 칸에 맞게 높이 축소 + 비트맵 비율(≈3.07:1) 유지해 카드를 꽉 채움.
+         마지막 요소라 하단 여백은 root padding(12dp)이 담당 — 아웃라인에 닿지 않음 -->
     <ImageView
         android:id="@+id/iv_situation"
         android:layout_width="190dp"
         android:layout_height="62dp"
         android:layout_gravity="center"
-        android:layout_marginBottom="2dp"
+        android:layout_marginBottom="0dp"
         android:background="@drawable/bg_situation"
         android:padding="6dp"
         android:scaleType="fitCenter"
