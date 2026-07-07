@@ -427,6 +427,16 @@
                         android:orientation="vertical"/>
                 </HorizontalScrollView>
 
+                <!-- 득점 상황카드(문자중계 스타일) — 앱 전용, 라이브에만 표시.
+                     /api/relay 이벤트를 최신순 카드로 렌더 (없으면 숨김) -->
+                <LinearLayout
+                    android:id="@+id/layout_relay_cards"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="6dp"
+                    android:visibility="gone"/>
+
                 <!-- 구분선 -->
                 <View
                     android:layout_width="match_parent"

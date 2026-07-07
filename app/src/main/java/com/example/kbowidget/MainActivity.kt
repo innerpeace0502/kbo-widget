@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivSituation: ImageView
     private lateinit var hsLineScore: HorizontalScrollView
     private lateinit var layoutLineScore: LinearLayout
+    private lateinit var layoutRelayCards: LinearLayout
     private lateinit var tvScoreAwayName: TextView
     private lateinit var tvScoreHomeName: TextView
     private lateinit var tvScoreAwayScore: TextView
@@ -155,6 +156,7 @@ class MainActivity : AppCompatActivity() {
         ivSituation            = findViewById(R.id.iv_situation)
         hsLineScore            = findViewById(R.id.hs_line_score)
         layoutLineScore        = findViewById(R.id.layout_line_score)
+        layoutRelayCards       = findViewById(R.id.layout_relay_cards)
         tvScoreAwayName        = findViewById(R.id.tv_score_away_name)
         tvScoreHomeName        = findViewById(R.id.tv_score_home_name)
         tvScoreAwayScore       = findViewById(R.id.tv_score_away_score)
@@ -359,9 +361,10 @@ class MainActivity : AppCompatActivity() {
     private fun restoreCachedUI() {
         if (cachedAway.isEmpty()) return
         layoutGameInfo.visibility = View.VISIBLE
-        // 상황(주자·카운트)·라인스코어는 캐시하지 않음 — 재진입 시 일단 숨기고, 라이브면 loadScores가 다시 그린다.
+        // 상황(주자·카운트)·라인스코어·상황카드는 캐시하지 않음 — 재진입 시 일단 숨기고, 라이브면 loadScores가 다시 그린다.
         ivSituation.visibility = View.GONE
         hsLineScore.visibility = View.GONE
+        layoutRelayCards.visibility = View.GONE
         tvGameDate.text       = cachedDate
         tvScoreAwayName.text  = cachedAway
         tvScoreHomeName.text  = cachedHome
@@ -617,6 +620,7 @@ class MainActivity : AppCompatActivity() {
                             updateScoreCard(awayScore, homeScore, inning, status)
                             renderSituationView(status, inning, sBalls, sStrikes, sOuts, sBases)
                             renderLineScore(status, inning, sAway, sHome, sLineScore)
+                            if (status != "1") layoutRelayCards.visibility = View.GONE
                             if (status == "2") {
                                 layoutFullRanking.visibility = View.VISIBLE
                                 if (cachedRankingList.isNotEmpty()) {
@@ -624,6 +628,8 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         }
+                        // 라이브면 득점 상황카드도 갱신 (백그라운드 스레드에서 별도 호출)
+                        if (status == "1") loadRelay(sAway)
                         break
                     }
                 }
@@ -709,6 +715,61 @@ class MainActivity : AppCompatActivity() {
         hsLineScore.visibility = View.VISIBLE
         // 연장 등으로 표가 화면보다 넓으면 진행 중 이닝이 보이게 오른쪽 끝으로 스크롤
         hsLineScore.post { hsLineScore.fullScroll(View.FOCUS_RIGHT) }
+    }
+
+    // 득점 상황카드(문자중계 스타일) — 앱 전용, 라이브에만. /api/relay가 주는
+    // 득점 이벤트를 최신순 카드로 그린다. 서버 쪽에서 스크레이핑을 트리거하지 않는
+    // 라우트라 30초 폴링에 실려도 서버 부하가 없다.
+    private fun loadRelay(team: String) {
+        client.newCall(
+            Request.Builder().url("$BASE/api/relay?team=$team").build()
+        ).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string() ?: return
+                    val events = JSONObject(body).optJSONArray("events") ?: return
+                    runOnUiThread { renderRelayCards(events) }
+                } catch (e: Exception) { println("[KBO위젯] relay 처리 오류: ${e.message}") }
+            }
+        })
+    }
+
+    private fun renderRelayCards(events: JSONArray) {
+        if (cachedStatus != "1" || events.length() == 0) {
+            layoutRelayCards.visibility = View.GONE
+            return
+        }
+        layoutRelayCards.removeAllViews()
+        val count = minOf(events.length(), 8)  // 최신 8개까지 (서버가 최신순으로 준다)
+        for (i in 0 until count) {
+            val e = events.optJSONObject(i) ?: continue
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setBackgroundResource(R.drawable.bg_card_sub)
+                setPadding(10.dp, 7.dp, 10.dp, 7.dp)
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = 4.dp }
+            }
+            row.addView(TextView(this).apply {
+                text = e.optString("time", "")
+                setTextColor(Color.parseColor("#8A9FBF"))
+                textSize = 10f
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { marginEnd = 8.dp }
+            })
+            row.addView(TextView(this).apply {
+                text = e.optString("text", "")
+                setTextColor(if (i == 0) Color.parseColor("#FFD700") else Color.WHITE)
+                textSize = 12f
+                if (i == 0) setTypeface(null, Typeface.BOLD)  // 가장 최근 득점 강조
+            })
+            layoutRelayCards.addView(row)
+        }
+        layoutRelayCards.visibility = View.VISIBLE
     }
 
     private fun restorePersistedScore(
