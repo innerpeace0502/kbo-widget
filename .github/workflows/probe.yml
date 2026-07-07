@@ -21,3 +21,9 @@ jobs:
             curl -sS --max-time 60 -w "\n[HTTP %{http_code}, %{time_total}s]\n" "$B$ep" | head -c 4000
             echo
           done
+          # Selenium 자체가 살아있는지 판별: 500이면 드라이버 고장, 200이면 페이지 구조 문제
+          echo "========== GET /api/debug/fetch (GameCenter) =========="
+          curl -sS -G --max-time 90 -w "\n[HTTP %{http_code}, %{time_total}s]\n" \
+            "$B/api/debug/fetch" \
+            --data-urlencode "url=https://www.koreabaseball.com/Schedule/GameCenter/Main.aspx?gameDate=20260707" \
+            --data-urlencode "wait=4" | head -c 6000
