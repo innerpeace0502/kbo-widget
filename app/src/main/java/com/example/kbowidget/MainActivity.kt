@@ -482,6 +482,8 @@ class MainActivity : AppCompatActivity() {
                     val stadium   = game.optString("stadium", "")
                     val broadcast = game.optString("broadcast", "")
 
+                    // 시리즈 라벨 (서버 '시리즈' 필드) — 정규 외(시범경기/WC1/준PO2/KS3 …)만 값이 옴
+                    val series = game.optString("시리즈", "")
                     cachedTeam      = team
                     cachedAway      = away
                     cachedHome      = home
@@ -490,7 +492,7 @@ class MainActivity : AppCompatActivity() {
                         isTomorrow   -> "내일 경기 예정"
                         isNext       -> "다음 경기 $date"
                         else         -> date
-                    }
+                    } + if (series.isNotEmpty()) " · ⚾ $series" else ""
                     cachedTime      = time
                     cachedStadium   = stadium
                     cachedBroadcast = broadcast
