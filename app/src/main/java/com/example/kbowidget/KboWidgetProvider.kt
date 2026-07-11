@@ -244,8 +244,18 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                     v.setTextViewText(R.id.tv_away,      away)
                     v.setTextViewText(R.id.tv_home,      home)
-                    v.setTextViewText(R.id.tv_game_time, "$gameTime 시작")
-                    v.setTextViewText(R.id.tv_stadium,   stadium)
+                    // 올스타 브레이크 (서버 161fa84) — 시작시간·경기장 대신 브레이크 + 다음 경기 표시
+                    if (json.optBoolean("올스타브레이크", false)) {
+                        val nextDate = json.optString("날짜", "")
+                            .let { if (it.length >= 10) it.substring(5).replace("-", ".") else it }
+                        v.setTextViewText(R.id.tv_game_time, "⭐ 올스타 브레이크")
+                        v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#FFD700"))
+                        v.setTextViewText(R.id.tv_stadium, "다음 경기 $nextDate $gameTime")
+                    } else {
+                        v.setTextViewText(R.id.tv_game_time, "$gameTime 시작")
+                        v.setTextColor(R.id.tv_game_time, android.graphics.Color.parseColor("#777777"))
+                        v.setTextViewText(R.id.tv_stadium, stadium)
+                    }
 
                     val awayColor  = teamColors[away] ?: 0xFF444444.toInt()
                     val homeColor  = teamColors[home] ?: 0xFF444444.toInt()

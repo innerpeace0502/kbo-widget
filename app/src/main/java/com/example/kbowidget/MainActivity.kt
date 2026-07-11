@@ -463,7 +463,10 @@ class MainActivity : AppCompatActivity() {
                 val games = json.getJSONArray("경기목록")
                 val date  = json.getString("날짜")
                 val isTomorrow  = json.optBoolean("내일경기", false)
+                val isNext      = json.optBoolean("다음경기", false)
                 val isCancelled = json.optBoolean("cancelled", false)
+                // 올스타 브레이크 (서버 161fa84) — 브레이크 기간이면 날짜 줄에 표시
+                val allstarBreak = json.optBoolean("올스타브레이크", false)
 
                 runOnUiThread {
                     if (games.length() == 0) {
@@ -482,7 +485,12 @@ class MainActivity : AppCompatActivity() {
                     cachedTeam      = team
                     cachedAway      = away
                     cachedHome      = home
-                    cachedDate      = if (isTomorrow) "내일 경기 예정" else date
+                    cachedDate      = when {
+                        allstarBreak -> "⭐ 올스타 브레이크 · 다음 경기 $date"
+                        isTomorrow   -> "내일 경기 예정"
+                        isNext       -> "다음 경기 $date"
+                        else         -> date
+                    }
                     cachedTime      = time
                     cachedStadium   = stadium
                     cachedBroadcast = broadcast
