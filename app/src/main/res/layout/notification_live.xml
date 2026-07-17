@@ -7,37 +7,22 @@
     android:orientation="vertical"
     android:paddingVertical="4dp">
 
-    <LinearLayout
+    <!-- 팀명·스코어 중앙정렬 (이닝은 아래 상황 바 왼쪽에 표시되므로 별도 뱃지 없음) -->
+    <TextView
+        android:id="@+id/tv_n_score"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center"
+        android:text="KIA 5 : 3 SSG"
+        android:textSize="22sp"
+        android:textStyle="bold"/>
 
-        <TextView
-            android:id="@+id/tv_n_score"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="KIA 5 : 3 SSG"
-            android:textSize="18sp"
-            android:textStyle="bold"/>
-
-        <TextView
-            android:id="@+id/tv_n_inning"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="9회초"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#FF6B6B"/>
-    </LinearLayout>
-
-    <!-- 한 줄 상황 바 (SituationDrawer.makeWidgetBar 비트맵: 이닝·LIVE/채널·주자·B·S·O) -->
+    <!-- 한 줄 상황 바 (SituationDrawer.makeNotificationBar: 이닝·주자·B·S·O 3요소) -->
     <ImageView
         android:id="@+id/iv_n_bar"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:layout_marginTop="4dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
         android:scaleType="fitCenter"
         android:contentDescription="경기 상황"/>
 

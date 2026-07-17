@@ -72,6 +72,56 @@ object SituationDrawer {
      * 채널명/번호는 fetchChannel이 prefs에 캐시한 값을 전달받는다(없으면 LIVE만 표시).
      * 캔버스 700x130(≈5.4:1) — 위젯 iv_situation도 같은 비율의 와이드 바.
      */
+    /**
+     * 고정 알림용 한 줄 바 — [이닝 ▲N | 주자 다이아몬드 | B·S·O] 3요소만.
+     * 위젯 바(makeWidgetBar)와 달리 LIVE/채널 칸이 없고, 요소를 넓은 간격으로
+     * 중앙 배치한다 (알림 확장 뷰 fitCenter 기준).
+     */
+    fun makeNotificationBar(inning: String, bases: BooleanArray,
+                            balls: Int, strikes: Int, outs: Int): Bitmap {
+        val w = 560; val h = 130
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.typeface = Typeface.DEFAULT_BOLD
+        val cy = 65f
+
+        // 1) 이닝 ▲N (초=▲빨강 / 말=▼파랑)
+        val m = Regex("(\\d+)").find(inning)
+        if (m != null) {
+            val isBot = inning.contains("말")
+            val icol = if (isBot) INN_BOT else INN_TOP
+            val tcx = 70f
+            p.style = Paint.Style.FILL; p.color = icol
+            val tri = Path().apply {
+                if (isBot) { moveTo(tcx - 13f, cy - 9f); lineTo(tcx + 13f, cy - 9f); lineTo(tcx, cy + 13f) }
+                else { moveTo(tcx - 13f, cy + 9f); lineTo(tcx + 13f, cy + 9f); lineTo(tcx, cy - 13f) }
+                close()
+            }
+            c.drawPath(tri, p)
+            p.textSize = 62f; p.textAlign = Paint.Align.LEFT
+            c.drawText(m.groupValues[1], tcx + 16f, cy + 22f, p)
+        }
+
+        // 2) 베이스 다이아몬드 (중앙)
+        val bcx = 280f; val r = 20f; val off = 42f
+        drawBase(c, p, bcx, cy - off, r, bases.getOrElse(1) { false })  // 2루(top)
+        drawBase(c, p, bcx + off, cy, r, bases.getOrElse(0) { false })  // 1루(right)
+        drawBase(c, p, bcx - off, cy, r, bases.getOrElse(2) { false })  // 3루(left)
+        p.style = Paint.Style.FILL; p.color = HOME_GRAY
+        val hp = Path().apply {
+            moveTo(bcx, cy + off - 7f); lineTo(bcx + 8f, cy + off); lineTo(bcx + 6f, cy + off + 9f)
+            lineTo(bcx - 6f, cy + off + 9f); lineTo(bcx - 8f, cy + off); close()
+        }
+        c.drawPath(hp, p)
+
+        // 3) B/S/O (우측)
+        drawCountRow(c, p, "B", 415f, 35f, 455f, 34f, 11f, 3, balls,   ON_B)
+        drawCountRow(c, p, "S", 415f, 65f, 455f, 34f, 11f, 2, strikes, ON_S)
+        drawCountRow(c, p, "O", 415f, 95f, 455f, 34f, 11f, 2, outs,    ON_O)
+        return bmp
+    }
+
     fun makeWidgetBar(inning: String, chName: String, chNum: String,
                       bases: BooleanArray, balls: Int, strikes: Int, outs: Int): Bitmap {
         val w = 700; val h = 130

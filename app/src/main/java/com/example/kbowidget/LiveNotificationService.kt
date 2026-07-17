@@ -150,14 +150,10 @@ class LiveNotificationService : Service() {
 
         val rv = RemoteViews(packageName, R.layout.notification_live)
         rv.setTextViewText(R.id.tv_n_score, title)
-        rv.setTextViewText(R.id.tv_n_inning, "● $inning")
         val bases = s.optJSONArray("bases")
         if (bases != null && s.optInt("balls", -1) >= 0) {
-            val prefs = KboCommon.prefs(this)
-            rv.setImageViewBitmap(R.id.iv_n_bar, SituationDrawer.makeWidgetBar(
+            rv.setImageViewBitmap(R.id.iv_n_bar, SituationDrawer.makeNotificationBar(
                 inning,
-                prefs.getString("live_ch_name", "") ?: "",
-                prefs.getString("live_ch_num", "") ?: "",
                 booleanArrayOf(bases.optBoolean(0), bases.optBoolean(1), bases.optBoolean(2)),
                 s.optInt("balls", 0), s.optInt("strikes", 0), s.optInt("outs", 0)))
             rv.setViewVisibility(R.id.iv_n_bar, android.view.View.VISIBLE)
