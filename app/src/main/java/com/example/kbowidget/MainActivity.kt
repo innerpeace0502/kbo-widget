@@ -193,6 +193,24 @@ class MainActivity : AppCompatActivity() {
             "genie" -> 1; "Uplus" -> 2; "btv" -> 3; else -> 0
         })
 
+        // ✅ 라이브 스코어 고정 알림 토글 — on 시 알림 권한(안드13+) 요청 후 서비스 기동
+        val switchLiveNoti = findViewById<android.widget.Switch>(R.id.switch_live_noti)
+        switchLiveNoti.isChecked = prefs.getBoolean("live_noti", false)
+        switchLiveNoti.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean("live_noti", checked).apply()
+            if (checked) {
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+                } else {
+                    LiveNotificationService.startIfEnabled(this)
+                }
+            } else {
+                LiveNotificationService.stop(this)
+            }
+        }
+
         // ✅ 투명도 슬라이더 초기화
         val savedAlpha = prefs.getInt("bg_alpha", 94)
         seekbarAlpha.progress = savedAlpha
@@ -323,6 +341,19 @@ class MainActivity : AppCompatActivity() {
         if (cachedRankingList.isEmpty() && cachedAway.isNotEmpty()) {
             val myTeam = if (cachedTeam == "전체") "" else cachedTeam
             loadRanking(cachedAway, cachedHome, myTeam)
+        }
+        // ✅ 라이브 고정 알림 — 토글 on + 오늘 경기(예정/라이브)면 포그라운드에서 기동.
+        // 이미 실행 중이면 onStartCommand가 폴링만 리셋하므로 중복 무해.
+        LiveNotificationService.startIfEnabled(this)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 && grantResults.isNotEmpty() &&
+            grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            LiveNotificationService.startIfEnabled(this)
         }
     }
 
@@ -511,6 +542,8 @@ class MainActivity : AppCompatActivity() {
                         .putString("app_sched_stadium",      stadium)
                         .putString("app_sched_broadcast",    broadcast)
                         .putLong(  "app_sched_last_load",    lastLoadTime)
+                        // 내일/다음 경기 표시 중인지 — 라이브 고정 알림이 "오늘 경기"로 오인하지 않게
+                        .putBoolean("app_sched_is_future",   isTomorrow || isNext || allstarBreak)
                         .apply()
 
                     layoutGameInfo.visibility = View.VISIBLE

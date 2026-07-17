@@ -104,7 +104,7 @@ object KboCommon {
             "app_away_pitchers", "app_home_pitchers",
             "app_sched_date_key", "app_sched_away", "app_sched_home", "app_sched_team",
             "app_sched_date_display", "app_sched_time", "app_sched_stadium",
-            "app_sched_broadcast", "app_sched_last_load"
+            "app_sched_broadcast", "app_sched_last_load", "app_sched_is_future"
         ).forEach { editor.remove(it) }
         editor.putString("kbo_game_date", today)
         editor.apply()

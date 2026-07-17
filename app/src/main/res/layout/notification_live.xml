@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 라이브 고정 알림 확장 뷰 — [팀 점수 : 점수 팀 | 이닝] + 한 줄 상황 바 + 현재 투/타.
+     DecoratedCustomViewStyle 안에 들어가므로 배경/앱 아이콘 행은 시스템이 그린다. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_n_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="KIA 5 : 3 SSG"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tv_n_inning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="9회초"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FF6B6B"/>
+    </LinearLayout>
+
+    <!-- 한 줄 상황 바 (SituationDrawer.makeWidgetBar 비트맵: 이닝·LIVE/채널·주자·B·S·O) -->
+    <ImageView
+        android:id="@+id/iv_n_bar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="4dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="경기 상황"/>
+
+    <TextView
+        android:id="@+id/tv_n_players"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_gravity="center_horizontal"
+        android:text=""
+        android:textSize="12sp"/>
+</LinearLayout>
