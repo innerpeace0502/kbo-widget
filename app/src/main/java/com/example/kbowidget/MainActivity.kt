@@ -449,6 +449,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** 오늘 경기 시작 시각("18:30")에 라이브 고정 알림 자동 기동 알람 예약 */
+    private fun scheduleLiveNotiAlarm(timeStr: String) {
+        val prefs = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("live_noti", false)) return
+        val m = Regex("(\\d{1,2}):(\\d{2})").find(timeStr) ?: return
+        val cal = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, m.groupValues[1].toInt())
+            set(java.util.Calendar.MINUTE, m.groupValues[2].toInt())
+            set(java.util.Calendar.SECOND, 0)
+        }
+        if (cal.timeInMillis <= System.currentTimeMillis()) return  // 이미 시작 — onResume 경로가 처리
+        try {
+            val pi = android.app.PendingIntent.getBroadcast(
+                this, 77, android.content.Intent(this, LiveNotiAlarmReceiver::class.java),
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                    android.app.PendingIntent.FLAG_IMMUTABLE)
+            val am = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            am.setExactAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+        } catch (e: Exception) {
+            println("[라이브알림] 알람 예약 실패: ${e.message}")
+        }
+    }
+
     private fun makeYellowAdapter(items: List<String>): ArrayAdapter<String> {
         return object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -545,6 +569,10 @@ class MainActivity : AppCompatActivity() {
                         // 내일/다음 경기 표시 중인지 — 라이브 고정 알림이 "오늘 경기"로 오인하지 않게
                         .putBoolean("app_sched_is_future",   isTomorrow || isNext || allstarBreak)
                         .apply()
+
+                    // 라이브 고정 알림 자동 기동 — 오늘 경기가 있으면 시작 시각에 정확 알람 예약
+                    // (정확 알람 트리거는 안드12+ 백그라운드 FGS 시작 제한의 공식 예외)
+                    if (!(isTomorrow || isNext || allstarBreak)) scheduleLiveNotiAlarm(time)
 
                     layoutGameInfo.visibility = View.VISIBLE
                     tvGameDate.text      = cachedDate

@@ -130,8 +130,8 @@
                     android:id="@+id/switch_live_noti"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:thumbTint="#FFD700"
-                    android:trackTint="#665C00"/>
+                    android:thumbTint="@color/live_switch_thumb"
+                    android:trackTint="@color/live_switch_track"/>
             </LinearLayout>
 
             <!-- ✅ 위젯 배경 투명도 슬라이더 -->

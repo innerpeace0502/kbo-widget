@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 토글 ON=노란색 / OFF=회색 — 상태 구분이 안 되던 문제 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="#FFD700"/>
+    <item android:color="#888899"/>
+</selector>

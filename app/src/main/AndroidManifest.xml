@@ -55,6 +55,9 @@
             android:name=".TickService"
             android:exported="false" />
 
+        <!-- 라이브 고정 알림 자동 기동(경기 시작 알람)·재소환 리시버 -->
+        <receiver android:name=".LiveNotiAlarmReceiver" android:exported="false"/>
+
         <!-- 라이브 경기 상황을 알림창에 고정하는 포그라운드 서비스 -->
         <service
             android:name=".LiveNotificationService"

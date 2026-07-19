@@ -440,6 +440,10 @@ class KboWidgetProvider : AppWidgetProvider() {
 
                             when (status) {
                                 "1" -> {
+                                    // 라이브 감지 → 고정 알림 자동 기동 (토글 on일 때).
+                                    // 이 코드는 위젯의 정확 알람 체인에서 실행되므로
+                                    // 안드12+ 백그라운드 FGS 시작 제한의 예외에 해당한다.
+                                    LiveNotificationService.startIfEnabled(context)
                                     // 라이브 — 시계 행 숨김(시합 중에는 시간 미표시, 배치 여유 확보).
                                     // 상황은 한 줄 바(이닝·LIVE/채널·베이스·B·S·O) 비트맵 한 장으로 표시,
                                     // info행(시작시간·경기장명·이닝)과 별도 채널행은 숨김(전부 바 안에 들어감).
