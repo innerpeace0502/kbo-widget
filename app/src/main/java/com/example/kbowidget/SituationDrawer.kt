@@ -31,7 +31,9 @@ object SituationDrawer {
     private val ON_S       = Color.parseColor("#FFD700")
     private val ON_O       = Color.parseColor("#FF6B6B")
     private val INN_TOP    = Color.parseColor("#FF6B6B")  // 초(▲)
-    private val INN_BOT    = Color.parseColor("#4A9EFF")  // 말(▼)
+    private val INN_BOT    = Color.parseColor("#4A9EFF")  // 말(▼) — 어두운 배경(위젯·앱)용
+    // 밝은 배경의 알림에서는 하늘색이 묻혀서 진한 남색 사용 (알림 바 전용)
+    private val INN_BOT_NOTI = Color.parseColor("#1B3A6B")
     private val BADGE_TXT  = Color.parseColor("#1A1A2E")  // 채널번호 뱃지 글자(금색 배경 위)
     private val DIV        = Color.parseColor("#2E2E44")  // 한 줄 바 구획 세로 구분선
 
@@ -86,11 +88,11 @@ object SituationDrawer {
         p.typeface = Typeface.DEFAULT_BOLD
         val cy = 65f
 
-        // 1) 이닝 ▲N (초=▲빨강 / 말=▼파랑)
+        // 1) 이닝 ▲N (초=▲빨강 / 말=▼진남색 — 밝은 알림 배경 가독성)
         val m = Regex("(\\d+)").find(inning)
         if (m != null) {
             val isBot = inning.contains("말")
-            val icol = if (isBot) INN_BOT else INN_TOP
+            val icol = if (isBot) INN_BOT_NOTI else INN_TOP
             val tcx = 70f
             p.style = Paint.Style.FILL; p.color = icol
             val tri = Path().apply {

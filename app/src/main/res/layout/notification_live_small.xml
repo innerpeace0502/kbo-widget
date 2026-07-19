@@ -6,7 +6,8 @@
     android:orientation="horizontal"
     android:gravity="center"
     android:paddingVertical="10dp"
-    android:paddingHorizontal="12dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="68dp">
 
     <TextView
         android:id="@+id/tv_ns_score"
@@ -24,7 +25,7 @@
         android:text="▼2회"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:textColor="#4A9EFF"/>
+        android:textColor="#1B3A6B"/>
 
     <TextView
         android:id="@+id/tv_ns_situ"

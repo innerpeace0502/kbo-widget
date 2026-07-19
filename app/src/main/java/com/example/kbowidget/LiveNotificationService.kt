@@ -244,7 +244,7 @@ class LiveNotificationService : Service() {
         small.setTextViewText(R.id.tv_ns_score, title)
         small.setTextViewText(R.id.tv_ns_inning, inningShort)
         small.setTextColor(R.id.tv_ns_inning,
-            Color.parseColor(if (isBot) "#4A9EFF" else "#FF6B6B"))
+            Color.parseColor(if (isBot) "#1B3A6B" else "#FF6B6B"))
         small.setTextViewText(R.id.tv_ns_situ, situText)
 
         return baseBuilder(ongoing = true)

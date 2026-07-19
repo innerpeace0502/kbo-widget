@@ -6,7 +6,8 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingVertical="12dp"
-    android:paddingHorizontal="12dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="68dp">
 
     <!-- 팀명·스코어 중앙정렬 (이닝은 아래 상황 바 왼쪽에 표시되므로 별도 뱃지 없음) -->
     <TextView
