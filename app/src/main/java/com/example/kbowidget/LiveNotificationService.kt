@@ -224,6 +224,12 @@ class LiveNotificationService : Service() {
         }
         val situText = "${outs}사 " +
             if (baseNames.isEmpty()) "주자 없음" else "주자 ${baseNames.joinToString("·")}"
+        // 접힌 뷰는 폭이 좁아 줄바꿈·잘림이 나므로 압축형 사용 (예: 0사 만루, 1사 1·2루)
+        val situShort = "${outs}사" + when {
+            baseNames.isEmpty()   -> ""
+            baseNames.size == 3   -> " 만루"
+            else -> " " + baseNames.joinToString("·") { it.removeSuffix("루") } + "루"
+        }
 
         // 펼친 뷰: 중앙 스코어 + [이닝|주자|B·S·O] 바 + 투/타
         val big = RemoteViews(packageName, R.layout.notification_live)
@@ -245,7 +251,7 @@ class LiveNotificationService : Service() {
         small.setTextViewText(R.id.tv_ns_inning, inningShort)
         small.setTextColor(R.id.tv_ns_inning,
             Color.parseColor(if (isBot) "#1B3A6B" else "#FF6B6B"))
-        small.setTextViewText(R.id.tv_ns_situ, situText)
+        small.setTextViewText(R.id.tv_ns_situ, situShort)
 
         return baseBuilder(ongoing = true)
             .setContentTitle(title)

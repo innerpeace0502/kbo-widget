@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 접힌 상태 뷰 — 접혀 있어도 점수·이닝·아웃/주자 요약이 한 줄에 보이게 (완전 커스텀, 전체 폭) -->
+<!-- 접힌 상태 뷰 — 접혀 있어도 점수·이닝·아웃/주자 요약이 한 줄에 보이게 (완전 커스텀, 전체 폭).
+     접힌 카드는 좌측 아이콘 열(~56dp)과 우측 펼침 화살표 열이 거의 상쇄되므로
+     보정 패딩은 8dp만 더 준다. 모든 텍스트는 한 줄 고정(줄바꿈 시 세로 잘림 방지). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -7,12 +9,13 @@
     android:gravity="center"
     android:paddingVertical="10dp"
     android:paddingStart="12dp"
-    android:paddingEnd="68dp">
+    android:paddingEnd="20dp">
 
     <TextView
         android:id="@+id/tv_ns_score"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:maxLines="1"
         android:text="KIA 0 : 0 SSG"
         android:textSize="17sp"
         android:textStyle="bold"/>
@@ -22,6 +25,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
+        android:maxLines="1"
         android:text="▼2회"
         android:textSize="14sp"
         android:textStyle="bold"
@@ -32,7 +36,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:text="2사 주자 없음"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="0사 1·2루"
         android:textSize="12sp"
         android:textColor="#8A9FBF"/>
 </LinearLayout>
