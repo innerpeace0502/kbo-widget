@@ -26,46 +26,23 @@ jobs:
           curl -sS --max-time 90 -w "\n[HTTP %{http_code}, %{time_total}s]\n" \
             "$B/api/debug/chrome" | head -c 6000
 
-      - name: 채널(TV_IF) 진단
+      - name: 올스타 브레이크 오인 진단
         run: |
-          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-          TODAY=$(TZ=Asia/Seoul date +%Y%m%d)
           B=https://web-production-6aae76.up.railway.app
-
-          echo "========== 오늘($TODAY) gamelist TV_IF 원본 =========="
-          curl -sS -X POST "https://www.koreabaseball.com/ws/Main.asmx/GetKboGameList" \
-            -H "User-Agent: $UA" -H "Referer: https://www.koreabaseball.com/" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data "leId=1&srId=0,1,3,4,5,7,9&date=$TODAY" -o /tmp/gl.json -w "[HTTP %{http_code}]\n"
-          python3 - <<'PYEOF'
-          import json
-          for g in json.load(open('/tmp/gl.json')).get('game', []):
-              print(f"{g.get('AWAY_NM')} vs {g.get('HOME_NM')}  TV_IF={g.get('TV_IF')!r}  state={g.get('GAME_STATE_SC')}")
-          PYEOF
-
-          echo "========== 월별 일정 rows의 방송 셀 (기존 파싱 소스와 비교) =========="
-          curl -sS -X POST "https://www.koreabaseball.com/ws/Schedule.asmx/GetScheduleList" \
-            -H "User-Agent: $UA" -H "Referer: https://www.koreabaseball.com/" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data "leId=1&srIdList=0,1,3,4,5,7,9&seasonId=2026&year=2026&month=07&gameMonth=07&teamId=" \
-            -o /tmp/sch.json -w "[HTTP %{http_code}]\n"
-          python3 - <<'PYEOF'
-          import json, re, datetime
-          today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%m.%d')
-          def strip(t): return re.sub(r'<[^>]+>', '', t or '')
-          cur = ''
-          for ro in json.load(open('/tmp/sch.json')).get('rows', []):
-              cells = [strip(c.get('Text','')) for c in ro.get('row', [])]
-              for c in cells:
-                  if re.match(r'\d{2}\.\d{2}', c): cur = c[:5]
-              if cur == today and any('vs' in c.lower() for c in cells):
-                  print(' | '.join(c for c in cells if c)[:150])
-          PYEOF
-
-          echo "========== 우리 서버 /api/schedule/today 응답 broadcast =========="
+          echo "========== /api/schedule/today (올스타브레이크 필드 확인) =========="
           curl -sS --max-time 30 "$B/api/schedule/today" | python3 -c "
           import json,sys
           d = json.load(sys.stdin)
-          for g in d.get('경기목록', []):
-              print(f\"{g['away']} vs {g['home']}  broadcast={g.get('broadcast')!r}  시리즈={g.get('시리즈')!r}\")
+          print('날짜:', d.get('날짜'), '/ 경기수:', d.get('경기수'))
+          print('올스타브레이크:', d.get('올스타브레이크', '(없음 — 정상)'))
+          print('내일경기:', d.get('내일경기'), '/ 다음경기:', d.get('다음경기'))
+          for g in d.get('경기목록', [])[:5]:
+              print(f\"  {g['away']} vs {g['home']} {g['time']} 시리즈={g.get('시리즈')!r}\")
+          "
+          echo "========== /api/schedule/today?team=KIA =========="
+          curl -sS --max-time 30 "$B/api/schedule/today?team=KIA" | python3 -c "
+          import json,sys
+          d = json.load(sys.stdin)
+          print('올스타브레이크:', d.get('올스타브레이크', '(없음 — 정상)'))
+          print(json.dumps(d.get('경기목록', []), ensure_ascii=False)[:300])
           "
