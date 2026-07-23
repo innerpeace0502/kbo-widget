@@ -190,10 +190,17 @@ class LiveNotificationService : Service() {
                 "${game.getString("away")} vs ${game.getString("home")} 경기취소",
                 game.optString("inning", "우천취소"), ongoing = false))
             else -> {
-                notifyKeeping(nm, buildTextNotification(
-                    "오늘 ${startTime.ifEmpty { "저녁" }} 경기 시작 예정",
-                    "시작하면 실시간 스코어로 바뀝니다", ongoing = true))
-                next(POLL_PRE_MS)
+                // 경기 시작 30분 이전이면 아직 고정 알림을 띄우지 않는다.
+                // (경기 시각을 알 수 있을 때만 적용 — 알 수 없으면 기존대로 예정 표시)
+                val until = msUntilStart(startTime)
+                if (until != null && until > PRE_LEAD_MS) {
+                    stopSelfRemoving()   // 너무 이름 — 알람이 30분 전에 다시 깨운다
+                } else {
+                    notifyKeeping(nm, buildTextNotification(
+                        "오늘 ${startTime.ifEmpty { "저녁" }} 경기 시작 예정",
+                        "시작하면 실시간 스코어로 바뀝니다", ongoing = true))
+                    next(POLL_PRE_MS)
+                }
             }
         }
     }
@@ -351,9 +358,36 @@ class LiveNotificationService : Service() {
         private const val POLL_LIVE_MS = 30_000L
         private const val POLL_PRE_MS = 180_000L
         private const val STALE_LIMIT_MS = 30 * 60_000L
+        const val PRE_LEAD_MS = 30 * 60_000L   // 경기 시작 30분 전부터 고정 알림 표시
         const val ACTION_REPOST = "com.example.kbowidget.LIVE_NOTI_REPOST"
 
         @Volatile private var running = false
+
+        /** "HH:mm" → 지금부터 경기 시작까지 남은 ms. 파싱 불가 시 null(=시간 미상). */
+        private fun msUntilStart(timeStr: String): Long? {
+            val m = Regex("(\\d{1,2}):(\\d{2})").find(timeStr) ?: return null
+            val cal = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, m.groupValues[1].toInt())
+                set(java.util.Calendar.MINUTE, m.groupValues[2].toInt())
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            return cal.timeInMillis - System.currentTimeMillis()
+        }
+
+        /** 오늘 경기 시작 시각("HH:mm")을 캐시에서 조회. 알 수 없으면 null. */
+        private fun knownStartTime(prefs: android.content.SharedPreferences, today: String): String? {
+            if (prefs.getString("app_sched_date_key", "") == today &&
+                !prefs.getBoolean("app_sched_is_future", false)) {
+                val t = prefs.getString("app_sched_time", "") ?: ""
+                if (t.isNotEmpty()) return t
+            }
+            if (prefs.getString("noti_sched_date", "") == today) {
+                val t = prefs.getString("noti_sched_time", "") ?: ""
+                if (t.isNotEmpty()) return t
+            }
+            return null
+        }
 
         /**
          * 토글 on이면 서비스 기동. 호출 컨텍스트: MainActivity(포그라운드),
@@ -371,6 +405,13 @@ class LiveNotificationService : Service() {
                 (prefs.getString("${pfx}_status", "") in listOf("2", "3"))
             }
             if (ended) return
+            // 경기 시작 30분 이전이면 아직 서비스를 띄우지 않는다 (불필요한 조기 알림 방지).
+            // 경기 시각은 앱/서비스 캐시에서 조회 — 알 수 없으면 서비스가 서버 조회 후 render에서 재판정.
+            val startT = knownStartTime(prefs, today)
+            if (startT != null) {
+                val until = msUntilStart(startT)
+                if (until != null && until > PRE_LEAD_MS) return
+            }
             try {
                 val intent = Intent(context, LiveNotificationService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -459,7 +459,10 @@ class MainActivity : AppCompatActivity() {
             set(java.util.Calendar.MINUTE, m.groupValues[2].toInt())
             set(java.util.Calendar.SECOND, 0)
         }
-        if (cal.timeInMillis <= System.currentTimeMillis()) return  // 이미 시작 — onResume 경로가 처리
+        val now = System.currentTimeMillis()
+        if (cal.timeInMillis <= now) return  // 이미 시작 — onResume 경로가 처리
+        // 경기 시작 30분 전에 알림을 띄운다. 이미 30분 이내면 곧바로(5초 후) 깨운다.
+        val triggerAt = maxOf(cal.timeInMillis - LiveNotificationService.PRE_LEAD_MS, now + 5_000L)
         try {
             val pi = android.app.PendingIntent.getBroadcast(
                 this, 77, android.content.Intent(this, LiveNotiAlarmReceiver::class.java),
@@ -467,7 +470,7 @@ class MainActivity : AppCompatActivity() {
                     android.app.PendingIntent.FLAG_IMMUTABLE)
             val am = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             am.setExactAndAllowWhileIdle(
-                android.app.AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+                android.app.AlarmManager.RTC_WAKEUP, triggerAt, pi)
         } catch (e: Exception) {
             println("[라이브알림] 알람 예약 실패: ${e.message}")
         }
