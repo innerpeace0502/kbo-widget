@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
     // 경기 중 자동 갱신 루프
     private val scoreHandler = Handler(Looper.getMainLooper())
     private var scoreRunnable: Runnable? = null
-    private val SCORE_REFRESH_INTERVAL = 30_000L  // 30초
+    private val SCORE_REFRESH_INTERVAL = 15_000L  // 15초 — 라이브 상황 반영 지연 단축(서버 캐시는 0.1s라 부담 없음)
 
     companion object {
         var lastLoadTime     = 0L
@@ -319,7 +319,14 @@ class MainActivity : AppCompatActivity() {
         } else if (cachedStatus == "1") {
             // 경기 중 → 스코어 갱신 + 루프 시작
             val myTeam = if (cachedTeam == "전체") "" else cachedTeam
-            loadScores(cachedAway, cachedHome, myTeam)
+            // 채널이 빈값(미상)으로 캐시돼 있으면 스케줄을 다시 받아 채널 보정
+            // (서버 채널 매핑 수정이 당일 캐시에도 즉시 반영되게 — 라이브 중엔 원래 스케줄 재조회를 건너뜀)
+            if (cachedBroadcast.isEmpty()) {
+                lastLoadTime = 0L
+                fetchGameInfo(team, iptv)
+            } else {
+                loadScores(cachedAway, cachedHome, myTeam)
+            }
             startScoreLoop()
         } else if (cachedStatus == "2" && cachedAway.isNotEmpty()) {
             // 경기 종료 → 최신 최종 스코어로 1회 갱신 (루프 없음)
