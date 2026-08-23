@@ -71,19 +71,21 @@ jobs:
               print(f\"{g['away']} vs {g['home']}  broadcast={g.get('broadcast')!r}\")
           "
 
-          echo "========== /api/scores 응답 지연 3회 측정 (chrome_mode·note 포함) =========="
+          echo "========== /api/scores 응답 지연 3회 측정 =========="
           for i in 1 2 3; do
-            curl -sS --max-time 60 -w "  [HTTP %{http_code}, %{time_total}s]\n" "$B/api/scores?team=KIA" \
-              | python3 -c "import json,sys
-try:
-    d=json.load(sys.stdin); s=d.get('scores',[])
-    print('chrome_mode=%r note=%r updated=%r' % (d.get('chrome_mode'), d.get('note'), d.get('updated')), end='')
-    if s: g=s[0]; print('  %s %s:%s %s %s'%(g['away'],g.get('away_score'),g.get('home_score'),g['home'],g.get('inning')), end='')
-    else: print('  (스코어 없음)', end='')
-except Exception as e: print('parse err', e, end='')
-"
+            curl -sS --max-time 60 -o /tmp/sc.json \
+              -w "  회차$i [HTTP %{http_code}, %{time_total}s]\n" "$B/api/scores?team=KIA"
           done
-          echo
+          python3 - <<'PYEOF'
+          import json
+          d = json.load(open('/tmp/sc.json')); s = d.get('scores', [])
+          print('chrome_mode=%r note=%r updated=%r' % (d.get('chrome_mode'), d.get('note'), d.get('updated')))
+          if s:
+              g = s[0]
+              print('  %s %s:%s %s %s' % (g['away'], g.get('away_score'), g.get('home_score'), g['home'], g.get('inning')))
+          else:
+              print('  (스코어 없음)')
+          PYEOF
           echo "========== /api/debug/scheduler (game_mode·chrome 상태) =========="
           curl -sS --max-time 30 "$B/api/debug/scheduler" | python3 -m json.tool --no-ensure-ascii
 
