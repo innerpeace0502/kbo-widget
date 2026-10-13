@@ -297,6 +297,15 @@ class MainActivity : AppCompatActivity() {
         loadGameInfo(savedTeam, savedIptv)
     }
 
+    // 캐시된(표시 중인) 경기에 응원팀이 포함되는지 — 포스트시즌처럼 응원팀이 안 나오는
+    // 경기를 표시할 땐 false. 이때 선발투수·순위 조회는 응원팀이 아니라 표시 경기 기준으로.
+    private fun cachedGameInvolvesMyTeam(): Boolean =
+        cachedTeam != "전체" && (cachedTeam == cachedAway || cachedTeam == cachedHome)
+    private fun pitcherLookupTeam(): String =
+        if (cachedGameInvolvesMyTeam()) cachedTeam else cachedAway
+    private fun rankingHighlightTeam(): String =
+        if (cachedGameInvolvesMyTeam()) cachedTeam else ""
+
     override fun onResume() {
         super.onResume()
         val prefs = getSharedPreferences("kbo_prefs", Context.MODE_PRIVATE)
@@ -318,7 +327,7 @@ class MainActivity : AppCompatActivity() {
             fetchGameInfo(team, iptv)
         } else if (cachedStatus == "1") {
             // 경기 중 → 스코어 갱신 + 루프 시작
-            val myTeam = if (cachedTeam == "전체") "" else cachedTeam
+            val myTeam = rankingHighlightTeam()
             // 채널이 빈값(미상)으로 캐시돼 있으면 스케줄을 다시 받아 채널 보정
             // (서버 채널 매핑 수정이 당일 캐시에도 즉시 반영되게 — 라이브 중엔 원래 스케줄 재조회를 건너뜀)
             if (cachedBroadcast.isEmpty()) {
@@ -330,7 +339,7 @@ class MainActivity : AppCompatActivity() {
             startScoreLoop()
         } else if (cachedStatus == "2" && cachedAway.isNotEmpty()) {
             // 경기 종료 → 최신 최종 스코어로 1회 갱신 (루프 없음)
-            val myTeam = if (cachedTeam == "전체") "" else cachedTeam
+            val myTeam = rankingHighlightTeam()
             loadScores(cachedAway, cachedHome, myTeam)
         }
         // 경기 전 상태이고 오늘 날짜면 캐시 그대로 표시
@@ -339,15 +348,13 @@ class MainActivity : AppCompatActivity() {
         // 60초마다 호출해 선발이 보이는데 앱은 /api/gameinfo를 onResume 흐름에서 다시 안 불러
         // 경기 전 시점의 선발투수가 안 뜨던 문제 수정.
         if (cachedStatus != "1" && cachedAway.isNotEmpty()) {
-            val teamParam = if (cachedTeam == "전체") cachedAway else cachedTeam
-            loadPitcherInfo(teamParam)
+            loadPitcherInfo(pitcherLookupTeam())
         }
         // ✅ 순위 캐시(in-memory companion)가 비면 다시 가져온다 — 프로세스 재시작·새 APK 설치
         // 후엔 cachedRankingList가 빈 상태인데 restoreScheduleFromPrefs는 prefs에 없는 순위를
         // 복원하지 못해 양팀 순위·전체 순위표가 안 보이던 문제.
         if (cachedRankingList.isEmpty() && cachedAway.isNotEmpty()) {
-            val myTeam = if (cachedTeam == "전체") "" else cachedTeam
-            loadRanking(cachedAway, cachedHome, myTeam)
+            loadRanking(cachedAway, cachedHome, rankingHighlightTeam())
         }
         // ✅ 라이브 고정 알림 — 토글 on + 오늘 경기(예정/라이브)면 포그라운드에서 기동.
         // 이미 실행 중이면 onStartCommand가 폴링만 리셋하므로 중복 무해.
@@ -374,13 +381,11 @@ class MainActivity : AppCompatActivity() {
         scoreRunnable = object : Runnable {
             override fun run() {
                 if (cachedAway.isNotEmpty()) {
-                    val myTeam = if (cachedTeam == "전체") "" else cachedTeam
-                    loadScores(cachedAway, cachedHome, myTeam)
+                    loadScores(cachedAway, cachedHome, rankingHighlightTeam())
                     // ✅ 투수/타자 정보도 함께 주기 갱신 — gameinfo route는 경기 중 매 타석마다
                     // 바뀌는 투/타 정보를 주는데, 이전엔 loadScores만 polling되고 loadPitcherInfo는
                     // 초기 1회만 호출되어 화면에 stale한 투타 정보가 새로고침 누르기 전까지 남았음.
-                    val teamParam = if (cachedTeam == "전체") cachedAway else cachedTeam
-                    loadPitcherInfo(teamParam)
+                    loadPitcherInfo(pitcherLookupTeam())
                 }
                 // 경기 중일 때만 반복
                 if (cachedStatus == "1") {
@@ -620,8 +625,11 @@ class MainActivity : AppCompatActivity() {
                         setChannelDisplay(chName, "")
                     }
 
-                    val teamParam2 = if (team == "전체") away else team
-                    val myTeam    = if (team == "전체") "" else team
+                    // 표시 중인 경기에 응원팀이 없으면(포스트시즌 등 팀 무관 표시) '전체'처럼 취급 —
+                    // 선발투수·순위 조회가 안 뛰는 응원팀이 아니라 표시 경기 기준으로 동작하게 한다.
+                    val involvesMyTeam = team != "전체" && (team == away || team == home)
+                    val teamParam2 = if (involvesMyTeam) team else away
+                    val myTeam     = if (involvesMyTeam) team else ""
 
                     // ✅ 전체 순위 항상 표시
                     loadRanking(away, home, myTeam)
